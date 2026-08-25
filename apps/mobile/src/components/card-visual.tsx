@@ -2,6 +2,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { T, radius, spacing, useTheme } from '@cardly/ui';
 
+import { NetworkMark } from '@/components/network-mark';
+
 export function CardVisual({
   nickname,
   issuer,
@@ -19,20 +21,18 @@ export function CardVisual({
   const content = (
     <View style={[styles.card, { backgroundColor: theme.backgroundCard }]}>
       <View style={styles.topRow}>
-        <T variant="bodyLarge" numberOfLines={1} style={styles.nickname}>
+        <T variant="display" numberOfLines={1} style={styles.nickname}>
           {nickname}
         </T>
-        <T variant="caption" color="tertiary">
-          {network ?? ''}
-        </T>
+        <NetworkMark network={network} />
       </View>
       <View style={styles.bottomRow}>
-        <T variant="body" color="secondary">
-          {issuer ? `${issuer}  ` : ''}
-          {'\u2022\u2022\u2022\u2022 '}
+        <T variant="caption" color="tertiary" style={styles.issuer}>
+          {issuer ?? ''}
+        </T>
+        <T variant="displayBold" style={[styles.last4, { color: theme.text }]}>
           {last4}
         </T>
-        <View style={[styles.chip, { backgroundColor: theme.chipBackground }]} />
       </View>
     </View>
   );
@@ -50,12 +50,13 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     padding: spacing.lg,
     gap: spacing.xl,
-    minHeight: 176,
+    minHeight: 168,
     justifyContent: 'space-between',
   },
-  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  bottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  chip: { width: 36, height: 26, borderRadius: radius.sm },
-  nickname: { flexShrink: 1 },
+  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm },
+  bottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
+  nickname: { flexShrink: 1, fontSize: 20 },
+  issuer: { letterSpacing: 0.3 },
+  last4: { fontSize: 24, letterSpacing: 3, fontVariant: ['tabular-nums'] },
   pressed: { opacity: 0.85 },
 });

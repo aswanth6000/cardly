@@ -62,9 +62,9 @@ export const spacing = {
 } as const;
 
 export const radius = {
-  sm: 8,
-  md: 12,
-  lg: 20,
+  sm: 10,
+  md: 14,
+  lg: 22,
   pill: 999,
 } as const;
 
@@ -72,7 +72,7 @@ export const fontSize = {
   caption: 12,
   body: 16,
   bodyLarge: 18,
-  title: 24,
+  title: 26,
   hero: 34,
 } as const;
 
@@ -83,12 +83,18 @@ export const fontWeight = {
   bold: '700',
 } as const;
 
+/** Display face: Instrument Sans (loaded via @expo-google-fonts). Used for
+ *  titles, nicknames, and card numbers. Body stays the system face. */
+export const displayFont = 'InstrumentSans_600SemiBold';
+export const displayFontBold = 'InstrumentSans_700Bold';
+
 export const typography = {
   caption: { fontSize: fontSize.caption, fontWeight: fontWeight.medium },
   body: { fontSize: fontSize.body, fontWeight: fontWeight.regular },
   bodyLarge: { fontSize: fontSize.bodyLarge, fontWeight: fontWeight.medium },
-  title: { fontSize: fontSize.title, fontWeight: fontWeight.bold },
-  hero: { fontSize: fontSize.hero, fontWeight: fontWeight.bold },
+  title: { fontSize: fontSize.title, fontWeight: fontWeight.bold, fontFamily: displayFontBold },
+  hero: { fontSize: fontSize.hero, fontWeight: fontWeight.bold, fontFamily: displayFontBold },
+  display: { fontFamily: displayFont, fontWeight: fontWeight.semibold },
 } as const;
 
 export function getTheme(scheme: ColorScheme): Theme {

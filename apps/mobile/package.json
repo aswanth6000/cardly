@@ -16,6 +16,7 @@
     "@cardly/storage": "workspace:*",
     "@cardly/ui": "workspace:*",
     "@cardly/vault": "workspace:*",
+    "@expo-google-fonts/instrument-sans": "^0.4.2",
     "expo": "~57.0.16",
     "expo-auth-session": "~57.0.9",
     "expo-camera": "~57.0.4",

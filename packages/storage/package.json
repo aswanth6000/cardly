@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "expo-secure-store": "*"
+    "expo-secure-store": "*",
+    "react-native": "*"
   },
   "devDependencies": {
     "typescript": "~6.0.3",

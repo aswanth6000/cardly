@@ -62,7 +62,11 @@ export default function ReviewCardScreen() {
         expiryYear: expiryYear ? Number(expiryYear) : undefined,
       });
       notifyHaptic('success');
-      router.dismissAll();
+      if (router.canGoBack()) {
+        router.dismissAll();
+      } else {
+        router.replace('/');
+      }
     } catch (e) {
       if (e instanceof DuplicateCardError) {
         setError('You already have a card with this number.');

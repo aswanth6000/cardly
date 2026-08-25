@@ -96,7 +96,11 @@ export default function ManualEntryScreen() {
         notes: notes.trim() || undefined,
       });
       notifyHaptic('success');
-      router.back();
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/');
+      }
     } catch (e) {
       if (e instanceof DuplicateCardError) {
         setServerError('You already have a card with this number.');

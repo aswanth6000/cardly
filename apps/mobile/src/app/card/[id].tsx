@@ -12,6 +12,7 @@ import { copyPlain, copySensitive } from '@/lib/clipboard';
 import { notifyHaptic } from '@/lib/haptics';
 import { useAppLock } from '@/hooks/use-app-lock';
 import { useVault } from '@/vault-context';
+import { CardVisual } from '@/components/card-visual';
 
 export default function CardDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -87,12 +88,14 @@ export default function CardDetailsScreen() {
           </T>
         </Pressable>
 
-        <T variant="title" style={styles.title}>
-          {card.nickname}
-        </T>
-        <T variant="body" color="secondary">
-          {maskedNumber}
-        </T>
+        <View style={styles.heroCard}>
+          <CardVisual
+            nickname={card.nickname}
+            issuer={card.issuer}
+            network={card.network}
+            last4={card.cardNumber.slice(-4)}
+          />
+        </View>
 
         <View style={styles.fields}>
           <DetailRow
@@ -200,6 +203,7 @@ function DetailRow({
 const styles = StyleSheet.create({
   container: { gap: spacing.md, paddingBottom: spacing.xxl },
   backButton: { alignSelf: 'flex-start', paddingVertical: spacing.sm },
+  heroCard: { marginTop: spacing.lg },
   title: { marginTop: spacing.md },
   fields: { marginTop: spacing.lg },
   row: {

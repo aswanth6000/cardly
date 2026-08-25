@@ -1,10 +1,15 @@
 /**
- * Key-value storage backed by `expo-secure-store` (iOS Keychain / Android
- * Keystore).
+ * Key-value storage.
+ *
+ * Native (iOS/Android): backed by `expo-secure-store` (Keychain / Keystore).
+ * Web: backed by `localStorage` (SecureStore is native-only; the web build
+ * is for preview/development and does not hold production secrets).
  *
  * The storage layer stores only ciphertext and non-sensitive metadata. It
  * never logs values, and error messages never include stored content.
  */
+import { Platform } from 'react-native';
+
 import * as SecureStore from 'expo-secure-store';
 
 export interface StorageOptions {
@@ -19,7 +24,9 @@ export interface KeyValueStore {
   contains(key: string): Promise<boolean>;
 }
 
-export class SecureKeyValueStore implements KeyValueStore {
+const PREFIX = 'cardly.';
+
+class SecureKeyValueStore implements KeyValueStore {
   async getItem(key: string): Promise<string | null> {
     try {
       return await SecureStore.getItemAsync(key);
@@ -52,6 +59,40 @@ export class SecureKeyValueStore implements KeyValueStore {
   }
 }
 
+class WebKeyValueStore implements KeyValueStore {
+  private read(key: string): string | null {
+    try {
+      return globalThis.localStorage?.getItem(PREFIX + key) ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  async getItem(key: string): Promise<string | null> {
+    return this.read(key);
+  }
+
+  async setItem(key: string, value: string): Promise<void> {
+    try {
+      globalThis.localStorage?.setItem(PREFIX + key, value);
+    } catch {
+      throw new Error(`Unable to write storage entry "${key}"`);
+    }
+  }
+
+  async deleteItem(key: string): Promise<void> {
+    try {
+      globalThis.localStorage?.removeItem(PREFIX + key);
+    } catch {
+      throw new Error(`Unable to delete storage entry "${key}"`);
+    }
+  }
+
+  async contains(key: string): Promise<boolean> {
+    return this.read(key) !== null;
+  }
+}
+
 export function createKeyValueStore(): KeyValueStore {
-  return new SecureKeyValueStore();
+  return Platform.OS === 'web' ? new WebKeyValueStore() : new SecureKeyValueStore();
 }
