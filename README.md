@@ -36,6 +36,18 @@ pnpm android    # Android emulator
 
 See `docs/development.md` for details.
 
+## Building
+
+Use EAS Build for native binaries:
+
+```bash
+pnpm --filter @cardly/mobile exec eas build --profile development   # dev build
+pnpm --filter @cardly/mobile exec eas build --profile production   # release
+```
+
+The camera and biometric features require a development build (they are not
+fully supported in Expo Go).
+
 ## Documentation
 
 - [Architecture](docs/architecture.md)

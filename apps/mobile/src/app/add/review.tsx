@@ -4,9 +4,10 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Screen, T, radius, spacing, useTheme } from '@cardly/ui';
-import { formatCardNumber, getNetwork, normalizeCardholderName } from '@cardly/vault';
+import { DuplicateCardError, formatCardNumber, getNetwork, normalizeCardholderName } from '@cardly/vault';
 
 import { useVault } from '@/vault-context';
+import { notifyHaptic } from '@/lib/haptics';
 
 export default function ReviewCardScreen() {
   const router = useRouter();
@@ -60,7 +61,14 @@ export default function ReviewCardScreen() {
         expiryMonth: expiryMonth ? Number(expiryMonth) : undefined,
         expiryYear: expiryYear ? Number(expiryYear) : undefined,
       });
+      notifyHaptic('success');
       router.dismissAll();
+    } catch (e) {
+      if (e instanceof DuplicateCardError) {
+        setError('You already have a card with this number.');
+      } else {
+        setError('Could not save the card.');
+      }
     } finally {
       setSaving(false);
     }

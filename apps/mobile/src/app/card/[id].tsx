@@ -8,6 +8,7 @@ import { formatExpiry } from '@cardly/vault';
 import type { Card } from '@cardly/vault';
 
 import { copyPlain, copySensitive } from '@/lib/clipboard';
+import { notifyHaptic } from '@/lib/haptics';
 import { useAppLock } from '@/hooks/use-app-lock';
 import { useVault } from '@/vault-context';
 
@@ -42,12 +43,16 @@ export default function CardDetailsScreen() {
       await copyPlain(value);
     }
     setCopied(key);
+    notifyHaptic('success');
     setTimeout(() => setCopied(null), 1500);
   };
 
   const reveal = async () => {
     const ok = await authenticate();
-    if (ok) setRevealed(true);
+    if (ok) {
+      setRevealed(true);
+      notifyHaptic('medium');
+    }
   };
 
   const onDelete = async () => {
@@ -134,6 +139,12 @@ export default function CardDetailsScreen() {
         )}
 
         <Button
+          label="Edit Card"
+          variant="secondary"
+          onPress={() => router.push(`/card/edit/${card.id}`)}
+          style={styles.editButton}
+        />
+        <Button
           label={confirmDelete ? 'Confirm delete' : 'Delete Card'}
           variant={confirmDelete ? 'danger' : 'ghost'}
           onPress={onDelete}
@@ -204,5 +215,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },
-  deleteButton: { marginTop: spacing.xxl },
+  editButton: { marginTop: spacing.xxl },
+  deleteButton: { marginTop: spacing.sm },
 });

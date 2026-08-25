@@ -31,6 +31,17 @@ export const VAULT_VERSION = 1;
 export const PAYLOAD_SCHEMA_VERSION = 1;
 export const DEFAULT_PBKDF2_ITERATIONS = 600_000;
 
+/** Thrown when adding/updating a card whose number already exists in the
+ *  vault. Carries the id of the existing card so the UI can navigate to it. */
+export class DuplicateCardError extends Error {
+  readonly existingCardId: string;
+  constructor(existingCardId: string) {
+    super('A card with this number already exists');
+    this.name = 'DuplicateCardError';
+    this.existingCardId = existingCardId;
+  }
+}
+
 export interface RecoveryConfig {
   salt: string;
   iterations: number;
@@ -141,6 +152,10 @@ export class Vault {
   async addCard(input: CardInput): Promise<Card> {
     const payload = await this.decryptPayload();
     const normalized = normalizeCardInput(input);
+    const duplicate = payload.cards.find((c) => normalizeCardNumber(c.cardNumber) === normalizeCardNumber(normalized.cardNumber));
+    if (duplicate) {
+      throw new DuplicateCardError(duplicate.id);
+    }
     const now = new Date().toISOString();
     const card: Card = {
       ...normalized,
@@ -158,9 +173,16 @@ export class Vault {
     const idx = payload.cards.findIndex((c) => c.id === id);
     if (idx === -1) return null;
     const existing = payload.cards[idx];
+    const normalized = normalizeCardInput(input);
+    const duplicate = payload.cards.find(
+      (c) => c.id !== id && normalizeCardNumber(c.cardNumber) === normalizeCardNumber(normalized.cardNumber),
+    );
+    if (duplicate) {
+      throw new DuplicateCardError(duplicate.id);
+    }
     const updated: Card = {
       ...existing,
-      ...normalizeCardInput(input),
+      ...normalized,
       updatedAt: new Date().toISOString(),
     };
     payload.cards[idx] = updated;

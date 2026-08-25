@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { Vault } from '../src/vault';
+import { DuplicateCardError, Vault } from '../src/vault';
 
 const TEST_ITERATIONS = 1_000;
 
@@ -67,7 +67,7 @@ describe('Vault', () => {
   it('deletes a card', async () => {
     const vault = await Vault.create();
     const card = await vault.addCard(sampleCard());
-    await vault.addCard(sampleCard({ nickname: 'Second' }));
+    await vault.addCard(sampleCard({ nickname: 'Second', cardNumber: '5555555555554444' }));
     expect(await vault.deleteCard(card.id)).toBe(true);
     expect(await vault.cardCount()).toBe(1);
     expect(await vault.deleteCard('missing')).toBe(false);
@@ -86,6 +86,25 @@ describe('Vault', () => {
 
     // Wrong password must fail
     await expect(Vault.openWithRecoveryPassword(header, 'wrong')).rejects.toThrow();
+  });
+
+  it('rejects a duplicate card number on add', async () => {
+    const vault = await Vault.create();
+    const first = await vault.addCard(sampleCard());
+    await expect(vault.addCard(sampleCard({ nickname: 'Copy' }))).rejects.toBeInstanceOf(DuplicateCardError);
+    await expect(vault.addCard(sampleCard({ nickname: 'Copy' }))).rejects.toMatchObject({ existingCardId: first.id });
+    // Spacing differences do not bypass the check.
+    await expect(vault.addCard(sampleCard({ nickname: 'Copy', cardNumber: '4528-1234-5678-4821' }))).rejects.toBeInstanceOf(DuplicateCardError);
+  });
+
+  it('allows updating a card to its own number and rejects another card\'s number', async () => {
+    const vault = await Vault.create();
+    const a = await vault.addCard(sampleCard());
+    const b = await vault.addCard(sampleCard({ nickname: 'Second', cardNumber: '5555555555554444' }));
+    // Updating A while keeping A's number is fine.
+    await expect(vault.updateCard(a.id, sampleCard({ nickname: 'Renamed' }))).resolves.toMatchObject({ nickname: 'Renamed' });
+    // Updating A to B's number is a duplicate.
+    await expect(vault.updateCard(a.id, sampleCard({ cardNumber: '5555555555554444' }))).rejects.toMatchObject({ existingCardId: b.id });
   });
 
   it('rejects a corrupted payload', async () => {

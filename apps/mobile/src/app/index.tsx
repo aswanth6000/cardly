@@ -48,12 +48,14 @@ export default function WalletScreen() {
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <T variant="title" style={styles.emptyTitle}>
-              Your wallet is empty
-            </T>
-            <T variant="secondary" color="secondary" style={styles.emptyHint}>
-              Add a card to get started.
-            </T>
+            <View style={[styles.emptyCard, { backgroundColor: theme.backgroundCard }]}>
+              <T variant="bodyLarge" color="tertiary">
+                Your wallet is empty
+              </T>
+              <T variant="body" color="tertiary" style={styles.emptyHint}>
+                Add a card to get started.
+              </T>
+            </View>
           </View>
         }
       />
@@ -82,7 +84,7 @@ const styles = StyleSheet.create({
   settingsButton: { padding: spacing.sm },
   separator: { height: spacing.md },
   empty: { alignItems: 'center', paddingTop: spacing.xxl, gap: spacing.sm },
-  emptyTitle: { textAlign: 'center' },
+  emptyCard: { borderRadius: 20, padding: spacing.xl, alignItems: 'center', gap: spacing.sm, width: '100%' },
   emptyHint: { textAlign: 'center' },
   fab: {
     position: 'absolute',

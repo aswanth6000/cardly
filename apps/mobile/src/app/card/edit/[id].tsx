@@ -1,20 +1,22 @@
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Screen, T, radius, spacing, useTheme } from '@cardly/ui';
 import { DuplicateCardError, formatCardNumber, normalizeCardholderName } from '@cardly/vault';
+import type { Card } from '@cardly/vault';
 
 import { useVault } from '@/vault-context';
-import { notifyHaptic } from '@/lib/haptics';
 
-export default function ManualEntryScreen() {
+export default function EditCardScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { addCard, validateInput } = useVault();
+  const { getCard, updateCard, validateInput } = useVault();
 
+  const [card, setCard] = useState<Card | null>(null);
   const [nickname, setNickname] = useState('');
   const [issuer, setIssuer] = useState('');
   const [cardNumber, setCardNumber] = useState('');
@@ -26,13 +28,29 @@ export default function ManualEntryScreen() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const inputStyle = (invalid: boolean) => [
+  useEffect(() => {
+    if (!id) return;
+    getCard(id).then((c) => {
+      if (!c) return;
+      setCard(c);
+      setNickname(c.nickname);
+      setIssuer(c.issuer ?? '');
+      setCardNumber(c.cardNumber);
+      setCardholderName(c.cardholderName ?? '');
+      setExpiryMonth(c.expiryMonth ? String(c.expiryMonth) : '');
+      setExpiryYear(c.expiryYear ? String(c.expiryYear) : '');
+      setCvv(c.cvv ?? '');
+      setNotes(c.notes ?? '');
+    });
+  }, [id, getCard]);
+
+  const inputStyle = [
     styles.input,
     { backgroundColor: theme.backgroundElevated, color: theme.text, borderColor: theme.divider },
-    invalid && { borderColor: theme.danger },
   ];
 
   const submit = async () => {
+    if (!card) return;
     const result = validateInput({
       nickname,
       issuer: issuer || undefined,
@@ -50,7 +68,7 @@ export default function ManualEntryScreen() {
     setError(null);
     setSaving(true);
     try {
-      await addCard({
+      await updateCard(card.id, {
         nickname,
         issuer: issuer || undefined,
         cardNumber,
@@ -60,11 +78,10 @@ export default function ManualEntryScreen() {
         cvv: cvv || undefined,
         notes: notes || undefined,
       });
-      notifyHaptic('success');
       router.back();
     } catch (e) {
       if (e instanceof DuplicateCardError) {
-        setError('You already have a card with this number.');
+        setError('Another card already uses this number.');
       } else {
         setError('Could not save the card.');
       }
@@ -73,16 +90,20 @@ export default function ManualEntryScreen() {
     }
   };
 
+  if (!card) return <Screen />;
+
   return (
     <Screen padded>
-      <View style={[styles.container, { paddingTop: insets.top + spacing.lg }]}>
-        <View style={styles.header}>
-          <T variant="body" color="secondary" onPress={() => router.back()}>
+      <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + spacing.lg }]}>
+        <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.backButton}>
+          <T variant="body" color="secondary">
             Cancel
           </T>
-          <T variant="title">Enter Manually</T>
-          <View style={styles.headerSpacer} />
-        </View>
+        </Pressable>
+
+        <T variant="hero" style={styles.title}>
+          Edit Card
+        </T>
 
         <View style={styles.form}>
           <Field label="Nickname">
@@ -91,7 +112,7 @@ export default function ManualEntryScreen() {
               onChangeText={setNickname}
               placeholder="e.g. Travel Card"
               placeholderTextColor={theme.textTertiary}
-              style={inputStyle(false)}
+              style={inputStyle}
               autoCapitalize="words"
             />
           </Field>
@@ -101,7 +122,7 @@ export default function ManualEntryScreen() {
               onChangeText={setIssuer}
               placeholder="e.g. HDFC"
               placeholderTextColor={theme.textTertiary}
-              style={inputStyle(false)}
+              style={inputStyle}
               autoCapitalize="words"
             />
           </Field>
@@ -111,7 +132,7 @@ export default function ManualEntryScreen() {
               onChangeText={(t) => setCardNumber(formatCardNumber(t))}
               placeholder="4528 1234 5678 4821"
               placeholderTextColor={theme.textTertiary}
-              style={inputStyle(false)}
+              style={inputStyle}
               keyboardType="number-pad"
               maxLength={23}
             />
@@ -122,7 +143,7 @@ export default function ManualEntryScreen() {
               onChangeText={(t) => setCardholderName(normalizeCardholderName(t))}
               placeholder="ASWANTH A"
               placeholderTextColor={theme.textTertiary}
-              style={inputStyle(false)}
+              style={inputStyle}
               autoCapitalize="characters"
             />
           </Field>
@@ -133,7 +154,7 @@ export default function ManualEntryScreen() {
                 onChangeText={(t) => setExpiryMonth(t.replace(/\D/g, '').slice(0, 2))}
                 placeholder="08"
                 placeholderTextColor={theme.textTertiary}
-                style={inputStyle(false)}
+                style={inputStyle}
                 keyboardType="number-pad"
                 maxLength={2}
               />
@@ -144,7 +165,7 @@ export default function ManualEntryScreen() {
                 onChangeText={(t) => setExpiryYear(t.replace(/\D/g, '').slice(0, 4))}
                 placeholder="2029"
                 placeholderTextColor={theme.textTertiary}
-                style={inputStyle(false)}
+                style={inputStyle}
                 keyboardType="number-pad"
                 maxLength={4}
               />
@@ -156,7 +177,7 @@ export default function ManualEntryScreen() {
               onChangeText={(t) => setCvv(t.replace(/\D/g, '').slice(0, 4))}
               placeholder="•••"
               placeholderTextColor={theme.textTertiary}
-              style={inputStyle(false)}
+              style={inputStyle}
               keyboardType="number-pad"
               maxLength={4}
               secureTextEntry
@@ -168,7 +189,7 @@ export default function ManualEntryScreen() {
               onChangeText={setNotes}
               placeholder="Optional"
               placeholderTextColor={theme.textTertiary}
-              style={inputStyle(false)}
+              style={inputStyle}
               multiline
             />
           </Field>
@@ -180,21 +201,13 @@ export default function ManualEntryScreen() {
           </T>
         )}
 
-        <Button label={saving ? 'Saving…' : 'Save Card'} onPress={submit} disabled={saving} style={styles.saveButton} />
-      </View>
+        <Button label={saving ? 'Saving…' : 'Save Changes'} onPress={submit} disabled={saving} style={styles.saveButton} />
+      </ScrollView>
     </Screen>
   );
 }
 
-function Field({
-  label,
-  children,
-  style,
-}: {
-  label: string;
-  children: React.ReactNode;
-  style?: View['props']['style'];
-}) {
+function Field({ label, children, style }: { label: string; children: React.ReactNode; style?: View['props']['style'] }) {
   return (
     <View style={[styles.field, style]}>
       <T variant="caption" color="secondary">
@@ -206,9 +219,9 @@ function Field({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, gap: spacing.lg },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerSpacer: { width: 60 },
+  container: { gap: spacing.lg, paddingBottom: spacing.xxl },
+  backButton: { alignSelf: 'flex-start', paddingVertical: spacing.sm },
+  title: { marginTop: spacing.md },
   form: { gap: spacing.md },
   field: { gap: spacing.xs },
   row: { flexDirection: 'row', gap: spacing.md },
