@@ -11,10 +11,12 @@ import { Button, Screen, T, radius, spacing, useTheme } from '@cardly/ui';
 import { useVault } from '@/vault-context';
 import {
   clearDriveToken,
+  downloadBackupFile,
   getDriveConfig,
+  getValidAccessToken as getValidAccessTokenFromLib,
+  listBackupFiles,
   persistDriveToken,
   readDriveToken,
-  refreshDriveToken,
   uploadBackupToDrive,
   useGoogleDriveAuth,
 } from '@/lib/drive';
@@ -37,6 +39,7 @@ export default function BackupScreen() {
   const driveAuth = useGoogleDriveAuth(driveConfig.clientId);
   const [driveToken, setDriveToken] = useState<DriveToken | null>(null);
   const [driveBusy, setDriveBusy] = useState(false);
+  const [driveFiles, setDriveFiles] = useState<{ id: string; name: string }[] | null>(null);
 
   const inputStyle = [
     styles.input,
@@ -148,25 +151,7 @@ export default function BackupScreen() {
     }
   }, [driveAuth.response]);
 
-  const getValidAccessToken = async (): Promise<string | null> => {
-    let token = driveToken ?? (await readDriveToken());
-    if (!token) return null;
-    if (token.expiresAt > Date.now() + 60_000) return token.accessToken;
-    if (token.refreshToken && driveConfig.clientId) {
-      const refreshed = await refreshDriveToken(driveConfig.clientId, token.refreshToken);
-      if (refreshed) {
-        const next: DriveToken = {
-          accessToken: refreshed.accessToken,
-          refreshToken: token.refreshToken,
-          expiresAt: Date.now() + refreshed.expiresIn * 1000,
-        };
-        await persistDriveToken(next);
-        setDriveToken(next);
-        return next.accessToken;
-      }
-    }
-    return null;
-  };
+  const getValidAccessToken = () => getValidAccessTokenFromLib(driveConfig.clientId);
 
   const onDriveConnect = async () => {
     clearFeedback();
@@ -210,7 +195,54 @@ export default function BackupScreen() {
   const onDriveDisconnect = async () => {
     await clearDriveToken();
     setDriveToken(null);
+    setDriveFiles(null);
     setMessage('Disconnected from Google Drive.');
+  };
+
+  const onDriveRestoreList = async () => {
+    clearFeedback();
+    setDriveBusy(true);
+    try {
+      const accessToken = await getValidAccessToken();
+      if (!accessToken) {
+        setError('Connect Google Drive first.');
+        return;
+      }
+      const files = await listBackupFiles(accessToken);
+      setDriveFiles(files);
+      if (files.length === 0) {
+        setMessage('No Cardly backups found in Drive.');
+      }
+    } catch {
+      setError('Could not list backups in Google Drive.');
+    } finally {
+      setDriveBusy(false);
+    }
+  };
+
+  const onDriveRestore = async (fileId: string, name: string) => {
+    clearFeedback();
+    if (!recoveryPassword) {
+      setError('Enter the recovery password for this backup.');
+      return;
+    }
+    setDriveBusy(true);
+    try {
+      const accessToken = await getValidAccessToken();
+      if (!accessToken) {
+        setError('Connect Google Drive first.');
+        return;
+      }
+      const text = await downloadBackupFile(accessToken, fileId);
+      await importBackup(text, recoveryPassword);
+      setDriveFiles(null);
+      setMessage(`Vault restored from ${name}.`);
+      router.back();
+    } catch {
+      setError('Could not restore this backup. Wrong password or corrupted file.');
+    } finally {
+      setDriveBusy(false);
+    }
   };
 
   return (
@@ -283,6 +315,35 @@ export default function BackupScreen() {
                 Connected to Google Drive
               </T>
               <Button label="Back Up to Drive" onPress={onDriveBackup} disabled={driveBusy} />
+              <Button label="Restore from Drive" variant="secondary" onPress={onDriveRestoreList} disabled={driveBusy} />
+              {driveFiles !== null && (
+                <View style={styles.fileList}>
+                  {driveFiles.length === 0 ? (
+                    <T variant="caption" color="tertiary">
+                      No backups found.
+                    </T>
+                  ) : (
+                    driveFiles.map((f) => (
+                      <Pressable
+                        key={f.id}
+                        accessibilityRole="button"
+                        onPress={() => onDriveRestore(f.id, f.name)}
+                        style={({ pressed }) => [
+                          styles.fileRow,
+                          { borderColor: theme.divider },
+                          pressed && { opacity: 0.7 },
+                        ]}>
+                        <T variant="body" numberOfLines={1}>
+                          {f.name}
+                        </T>
+                        <T variant="caption" color="secondary">
+                          Restore
+                        </T>
+                      </Pressable>
+                    ))
+                  )}
+                </View>
+              )}
               <Button label="Disconnect" variant="ghost" onPress={onDriveDisconnect} disabled={driveBusy} />
             </>
           ) : (
@@ -316,6 +377,17 @@ const styles = StyleSheet.create({
   title: { marginTop: spacing.md },
   section: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.md },
   field: { gap: spacing.xs },
+  fileList: { gap: spacing.sm },
+  fileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 2,
+    gap: spacing.md,
+  },
   input: {
     borderWidth: 1,
     borderRadius: radius.md,

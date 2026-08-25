@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { usePreventScreenCapture } from 'expo-screen-capture';
 
 import { Button, Screen, T, radius, spacing, useTheme } from '@cardly/ui';
 import { formatExpiry } from '@cardly/vault';
@@ -18,6 +19,12 @@ export default function CardDetailsScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { getCard, deleteCard } = useVault();
+
+  // This screen shows sensitive card data: block screenshots and recordings
+  // while it is mounted (FLAG_SECURE on Android, screen-recording block on
+  // iOS). iOS app-switcher snapshots are additionally blurred by the system
+  // when the screen is captured.
+  usePreventScreenCapture('card-details');
 
   const [card, setCard] = useState<Card | null>(null);
   const [revealed, setRevealed] = useState(false);

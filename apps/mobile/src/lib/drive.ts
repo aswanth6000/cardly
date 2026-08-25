@@ -117,6 +117,39 @@ export async function uploadBackupToDrive(
 }
 
 /**
+ * List Cardly backup files in Drive (only files this app created, thanks to
+ * the drive.file scope).
+ */
+export async function listBackupFiles(accessToken: string): Promise<{ id: string; name: string }[]> {
+  const res = await fetch(
+    'https://www.googleapis.com/drive/v3/files?q=trashed%3Dfalse&fields=files(id,name,modifiedTime)&orderBy=modifiedTime%20desc',
+    {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    },
+  );
+  if (!res.ok) {
+    throw new Error(`Drive list failed (${res.status})`);
+  }
+  const json = (await res.json()) as { files?: { id?: string; name?: string }[] };
+  return (json.files ?? [])
+    .filter((f) => f.id && f.name)
+    .map((f) => ({ id: f.id as string, name: f.name as string }));
+}
+
+/**
+ * Download a backup file from Drive by id and return its text content.
+ */
+export async function downloadBackupFile(accessToken: string, fileId: string): Promise<string> {
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) {
+    throw new Error(`Drive download failed (${res.status})`);
+  }
+  return res.text();
+}
+
+/**
  * Refresh an expired access token using the stored refresh token.
  * Returns null if the token is still fresh or cannot be refreshed.
  */
@@ -137,6 +170,32 @@ export async function refreshDriveToken(
   const json = (await res.json()) as { access_token?: string; expires_in?: number };
   if (!json.access_token) return null;
   return { accessToken: json.access_token, expiresIn: json.expires_in ?? 3600 };
+}
+
+/**
+ * Get a valid access token, refreshing if needed. Returns null when there is
+ * no stored token or the refresh fails.
+ */
+export async function getValidAccessToken(
+  clientId: string | null,
+  store: KeyValueStore = createKeyValueStore(),
+): Promise<string | null> {
+  const token = await readDriveToken(store);
+  if (!token) return null;
+  if (token.expiresAt > Date.now() + 60_000) return token.accessToken;
+  if (token.refreshToken && clientId) {
+    const refreshed = await refreshDriveToken(clientId, token.refreshToken);
+    if (refreshed) {
+      const next: DriveToken = {
+        accessToken: refreshed.accessToken,
+        refreshToken: token.refreshToken,
+        expiresAt: Date.now() + refreshed.expiresIn * 1000,
+      };
+      await persistDriveToken(next, store);
+      return next.accessToken;
+    }
+  }
+  return null;
 }
 
 /** Human-friendly note about the platform (used for the connected label). */

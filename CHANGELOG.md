@@ -4,6 +4,22 @@ All notable changes to Cardly are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- OCR pre-fill for card scanning: the captured image is processed on-device
+  via the web Shape Detection API where available; a config-gated native ML
+  Kit hook is documented for production. Recognized text goes through the
+  existing extraction heuristics and is always user-reviewed.
+- Google Drive restore: list the app's backup files, download the chosen
+  encrypted backup, and restore locally with the recovery password.
+- Screen capture protection on the card details screen
+  (`usePreventScreenCapture` — FLAG_SECURE on Android, recording block on
+  iOS).
+- `PRIVACY.md` plus an in-app Privacy screen linked from Settings.
+- Drive backup files can now be listed and restored in the Backup screen.
+
 ## [0.2.0] - 2026-08-25
 
 ### Added

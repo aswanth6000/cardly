@@ -53,16 +53,19 @@ fully supported in Expo Go).
 - [Architecture](docs/architecture.md)
 - [Security model](docs/security.md)
 - [Backup format](docs/backup-format.md)
+- [Privacy policy](PRIVACY.md)
 - [Development](docs/development.md)
 - [Contributing](CONTRIBUTING.md)
 
 ## Roadmap
 
 - **Done:** encrypted local vault, biometric unlock, manual card entry, copy
-  with clipboard auto-clear, app lock, camera capture with review screen,
-  encrypted export/import, Google Drive backup (requires a Google OAuth
-  client ID).
-- **Planned:** OCR text recognition to pre-fill the review screen.
+  with clipboard auto-clear, app lock, card editing, duplicate detection,
+  camera capture with review + on-device OCR pre-fill (web), encrypted
+  export/import, Google Drive backup + restore (requires a Google OAuth
+  client ID), screenshot protection on card details.
+- **Planned:** native ML Kit OCR pre-fill on device (config-gated),
+  configurable app-lock timeout.
 
 ## Security
 

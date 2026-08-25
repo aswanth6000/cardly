@@ -67,8 +67,20 @@ export default function SettingsScreen() {
           />
         </View>
 
+        <Pressable
+          accessibilityRole="link"
+          onPress={() => router.push('/privacy')}
+          style={styles.privacyRow}>
+          <T variant="body" color="secondary">
+            Privacy policy
+          </T>
+          <T variant="body" color="tertiary">
+            →
+          </T>
+        </Pressable>
+
         <T variant="caption" color="tertiary" style={styles.footer}>
-          Cardly v0.1.0 — open source · local-first · no account
+          Cardly v0.2.0 — open source · local-first · no account
         </T>
       </ScrollView>
     </Screen>
@@ -81,5 +93,11 @@ const styles = StyleSheet.create({
   title: { marginTop: spacing.md },
   section: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 16, padding: spacing.lg, gap: spacing.sm },
   button: { marginTop: spacing.sm },
+  privacyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.sm,
+  },
   footer: { marginTop: spacing.lg, textAlign: 'center' },
 });

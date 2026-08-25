@@ -5,8 +5,9 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Screen, T, spacing } from '@cardly/ui';
-import { extractCardInfo } from '@cardly/vault';
 import type { ScannedCard } from '@cardly/vault';
+
+import { scanCardImage } from '@/lib/ocr';
 
 export default function ScanCardScreen() {
   const router = useRouter();
@@ -21,11 +22,12 @@ export default function ScanCardScreen() {
     setCapturing(true);
     setError(null);
     try {
-      await cameraRef.current.takePictureAsync({ base64: true, quality: 0.7 });
-      // OCR is not wired to a model yet: the review screen is pre-filled
-      // with nothing and lets the user type what they see. The extraction
-      // helpers are ready in @cardly/vault and covered by tests.
-      const scanned = extractCardInfo('');
+      const photo = await cameraRef.current.takePictureAsync({ base64: true, quality: 0.7 });
+      // OCR runs on-device: the captured image is processed locally and never
+      // leaves the device. The review screen always lets the user correct
+      // every field — OCR is a convenience, never the source of truth.
+      const source = photo?.base64 ? `data:image/jpeg;base64,${photo.base64}` : photo?.uri ?? '';
+      const scanned = source ? await scanCardImage(source) : {};
       router.push({ pathname: '/add/review', params: encodeScanned(scanned) });
     } catch {
       setError('Could not capture the card. Try again.');

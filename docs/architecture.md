@@ -125,10 +125,29 @@ vault header: the encrypted payload plus the recovery-wrapped key.
 ## Card scanning
 
 `/add/scan` opens the camera (`expo-camera`). On capture, the image is
-processed and card-like fields are extracted by the pure heuristics in
-`packages/vault/src/scanner.ts` (Luhn-valid number, expiry pattern, ALL-CAPS
-name). The user always reviews and edits every field on `/add/review` before
-anything is saved — OCR is a convenience, never the source of truth.
+processed **on-device** and card-like fields are extracted:
+
+- **Web:** the browser's Shape Detection API (`TextDetector` / `BarcodeDetector`)
+  when available; otherwise the review screen asks the user to type the
+  fields.
+- **Native:** the production path is a native ML Kit Text Recognition v2
+  module. Expo does not ship a first-party OCR module, so `lib/ocr.ts`
+  exposes a config-gated hook (`app.json` `extra.ocr.native`): when enabled
+  and a native module is registered, the image URI is passed to it. Without
+  it, scanning works the same but without auto-fill.
+
+The recognized text always goes through the conservative extraction
+heuristics in `packages/vault/src/scanner.ts` (Luhn-valid number, expiry
+pattern, ALL-CAPS name), and the user reviews and edits every field on
+`/add/review` before anything is saved — OCR is a convenience, never the
+source of truth.
+
+## Screen capture protection
+
+The card details screen (which shows sensitive fields after authentication)
+calls `usePreventScreenCapture('card-details')` while mounted, blocking
+screenshots and screen recordings (`FLAG_SECURE` on Android, screen-recording
+block on iOS).
 
 ## Google Drive
 
@@ -140,6 +159,8 @@ anything is saved — OCR is a convenience, never the source of truth.
   stored in SecureStore and refreshed when expired.
 - Upload uses the Drive API v3 `files.create` multipart endpoint with the
   encrypted backup JSON. Drive never sees plaintext card data.
+- Restore lists the app's Drive files, downloads the chosen encrypted backup,
+  and decrypts it locally with the recovery password.
 
 The Google OAuth client ID is **not** bundled: configure it in `app.json`
 `extra.googleDrive.clientId` (or `EXPO_PUBLIC_GOOGLE_DRIVE_CLIENT_ID`).
