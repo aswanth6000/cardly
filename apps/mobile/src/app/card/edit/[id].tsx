@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, TextInput, View, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Screen, T, radius, spacing, useTheme } from '@cardly/ui';
@@ -94,7 +94,15 @@ export default function EditCardScreen() {
 
   return (
     <Screen padded>
-      <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + spacing.lg }]}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}>
+      <ScrollView
+        contentContainerStyle={[styles.container, { paddingTop: insets.top + spacing.lg, paddingBottom: insets.bottom + spacing.xxl }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}>
         <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.backButton}>
           <T variant="body" color="secondary">
             Cancel
@@ -203,6 +211,7 @@ export default function EditCardScreen() {
 
         <Button label={saving ? 'Saving…' : 'Save Changes'} onPress={submit} disabled={saving} style={styles.saveButton} />
       </ScrollView>
+      </KeyboardAvoidingView>
     </Screen>
   );
 }
@@ -219,6 +228,7 @@ function Field({ label, children, style }: { label: string; children: React.Reac
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   container: { gap: spacing.lg, paddingBottom: spacing.xxl },
   backButton: { alignSelf: 'flex-start', paddingVertical: spacing.sm },
   title: { marginTop: spacing.md },
