@@ -102,6 +102,22 @@ export class Vault {
     return Crypto.unwrapVaultKey(header.wrappedKey, password, header.recovery);
   }
 
+  /** The in-memory key for this vault instance. Used to add/replace the
+   *  recovery wrapping. */
+  static async recoverKeyFromVault(vault: Vault): Promise<RawKey> {
+    return vault.key;
+  }
+
+  /** Replace the header of this in-memory vault (after a recovery-key
+   *  change) without touching the encrypted payload. */
+  adoptHeader(header: VaultHeader): void {
+    this.header.recovery = header.recovery;
+    this.header.wrappedKey = header.wrappedKey;
+    this.header.kdf = header.kdf;
+    this.header.version = header.version;
+    this.header.payload = header.payload;
+  }
+
   async encryptPayload(payload: VaultPayload): Promise<string> {
     const json = JSON.stringify(payload);
     return Crypto.encryptString(json, this.key);

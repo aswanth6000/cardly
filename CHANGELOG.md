@@ -13,7 +13,10 @@ adheres to [Semantic Versioning](https://semver.org/).
   TypeScript for tests), PBKDF2-HMAC-SHA256 key derivation, vault key
   generation and wrapping.
 - `@cardly/vault`: encrypted vault model (`Vault`), card model, Luhn
-  validation, expiry/CVV validation, card-number formatting.
+  validation, expiry/CVV validation, card-number formatting, card text
+  extraction heuristics for scanning.
+- `@cardly/backup`: encrypted backup serialize/restore and recovery-key
+  management.
 - `@cardly/storage`: SecureStore-backed key-value store.
 - `@cardly/ui`: design tokens (light/dark), typography, buttons, primitives.
 - Mobile app:
@@ -23,14 +26,17 @@ adheres to [Semantic Versioning](https://semver.org/).
   - App lock on background.
   - Clipboard auto-clear for sensitive values.
   - Settings screen with delete-vault.
-- Tests: 37 vitest tests covering crypto, vault, validation, and the backup
-  format.
+  - Backup screen: recovery password, encrypted export/import, Google Drive.
+  - Card scanning: camera capture, review-and-edit screen before saving.
+- Tests: 49 vitest tests covering crypto, vault, validation, scanner
+  extraction, and the backup format.
 - Documentation: architecture, security model, backup format, development,
   contributing, security policy, code of conduct.
 
 ### Notes
 
-- Card scanning, encrypted export/import, and Google Drive backup are planned
-  but not yet implemented.
-- Recovery-key UX (password-protected vault export) is designed in the backup
-  format but not yet wired into the UI.
+- OCR text recognition to pre-fill the scan review screen is not yet wired;
+  the review screen lets users enter fields manually after capturing.
+- Google Drive requires a Google OAuth client ID configured via
+  `app.json` `extra.googleDrive.clientId` (or
+  `EXPO_PUBLIC_GOOGLE_DRIVE_CLIENT_ID`).

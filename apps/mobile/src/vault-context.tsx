@@ -8,7 +8,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Vault, validateCardInput } from '@cardly/vault';
-import type { Card, CardInput, CardSummary } from '@cardly/vault';
+import type { Card, CardInput, CardSummary, VaultHeader } from '@cardly/vault';
+import { createBackup, restoreBackup, setRecoveryKey } from '@cardly/backup';
+import type { BackupResult } from '@cardly/backup';
 
 import { createKeyValueStore } from '@cardly/storage';
 import type { KeyValueStore } from '@cardly/storage';
@@ -20,6 +22,7 @@ export interface VaultContextValue {
   locked: boolean;
   summary: CardSummary[] | null;
   vault: Vault | null;
+  hasRecoveryKey: boolean;
   unlock: () => Promise<void>;
   lock: () => Promise<void>;
   createNewVault: () => Promise<void>;
@@ -29,6 +32,9 @@ export interface VaultContextValue {
   updateCard: (id: string, input: CardInput) => Promise<Card | null>;
   deleteCard: (id: string) => Promise<boolean>;
   validateInput: (input: CardInput) => ReturnType<typeof validateCardInput>;
+  setRecoveryPassword: (password: string) => Promise<void>;
+  exportBackup: (password: string) => Promise<BackupResult>;
+  importBackup: (text: string, password: string) => Promise<void>;
 }
 
 const VaultContext = createContext<VaultContextValue | null>(null);
@@ -159,12 +165,53 @@ export function VaultProvider({ children, store }: { children: React.ReactNode; 
     [persist],
   );
 
+  const hasRecoveryKey = useMemo(() => {
+    const header = vault?.serialize();
+    return Boolean(header?.recovery && header?.wrappedKey);
+  }, [vault]);
+
+  const setRecoveryPassword = useCallback(
+    async (password: string) => {
+      const v = vaultRef.current;
+      if (!v) throw new Error('Vault is not available');
+      await setRecoveryKey(v, password, async (header: VaultHeader) => {
+        await storage.setItem(VAULT_STORAGE_KEY, JSON.stringify(header));
+      });
+    },
+    [storage],
+  );
+
+  const exportBackup = useCallback(
+    async (password: string) => {
+      const v = vaultRef.current;
+      if (!v) throw new Error('Vault is not available');
+      return createBackup(v, password);
+    },
+    [],
+  );
+
+  const importBackup = useCallback(
+    async (text: string, password: string) => {
+      const restored = await restoreBackup(text, password);
+      await storage.setItem(VAULT_STORAGE_KEY, JSON.stringify(restored.serialize()));
+      await storage.deleteItem(VAULT_KEY_STORAGE_KEY);
+      const key = await Vault.recoverKeyFromVault(restored);
+      await storeVaultKey(key, storage);
+      vaultRef.current = restored;
+      setVault(restored);
+      await refreshSummary(restored);
+      setLocked(false);
+    },
+    [storage, refreshSummary],
+  );
+
   const value = useMemo<VaultContextValue>(
     () => ({
       ready,
       locked,
       summary,
       vault,
+      hasRecoveryKey,
       unlock,
       lock,
       createNewVault,
@@ -174,8 +221,11 @@ export function VaultProvider({ children, store }: { children: React.ReactNode; 
       updateCard,
       deleteCard,
       validateInput: validateCardInput,
+      setRecoveryPassword,
+      exportBackup,
+      importBackup,
     }),
-    [ready, locked, summary, vault, unlock, lock, createNewVault, deleteVault, getCard, addCard, updateCard, deleteCard],
+    [ready, locked, summary, vault, hasRecoveryKey, unlock, lock, createNewVault, deleteVault, getCard, addCard, updateCard, deleteCard, setRecoveryPassword, exportBackup, importBackup],
   );
 
   return <VaultContext.Provider value={value}>{children}</VaultContext.Provider>;

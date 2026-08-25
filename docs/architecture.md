@@ -24,6 +24,7 @@ cardly/
 ├── packages/
 │   ├── crypto/            # AES-GCM vault crypto, key derivation, wrapping
 │   ├── vault/             # Encrypted vault model, card validation, formatting
+│   ├── backup/            # Encrypted backup serialize/restore
 │   ├── storage/           # SecureStore-backed key-value storage
 │   └── ui/                # Design tokens and shared UI primitives
 ├── docs/                  # This documentation
@@ -103,25 +104,53 @@ from what is on disk.
 - `/` — wallet (card list)
 - `/add` — add card chooser (scan / manual)
 - `/add/manual` — manual entry
-- `/add/scan` — scanner placeholder (future)
+- `/add/scan` — camera scan (capture + review)
+- `/add/review` — review & edit scanned fields before saving
 - `/card/[id]` — card details (sensitive fields gated by biometrics)
-- `/settings` — backup placeholder, delete vault
+- `/settings` — settings
+- `/backup` — recovery password, encrypted export/import, Google Drive
 
-## Testing
+## Backup
 
-`pnpm test` runs vitest over `packages/**/*.test.ts`. The crypto and vault
-packages are tested in Node against the pure-TypeScript AES-GCM / PBKDF2
-implementations, which are also the reference for cross-platform
-interoperability.
+`@cardly/backup` serializes a vault into the encrypted backup format
+(see [backup-format.md](backup-format.md)) and restores it with the user's
+recovery password. A backup is a single JSON file (`.cardly`) containing the
+vault header: the encrypted payload plus the recovery-wrapped key.
 
-See [development.md](development.md).
+- **Export:** writes the encrypted file to the app Documents folder, or
+  uploads it to Google Drive.
+- **Import:** reads a `.cardly` file via the system document picker and
+  restores the vault in place (replacing the current vault on this device).
+
+## Card scanning
+
+`/add/scan` opens the camera (`expo-camera`). On capture, the image is
+processed and card-like fields are extracted by the pure heuristics in
+`packages/vault/src/scanner.ts` (Luhn-valid number, expiry pattern, ALL-CAPS
+name). The user always reviews and edits every field on `/add/review` before
+anything is saved — OCR is a convenience, never the source of truth.
+
+## Google Drive
+
+`apps/mobile/src/lib/drive.ts` implements the optional Drive backup:
+
+- OAuth via `expo-auth-session`'s Google provider with the **minimum scope**
+  (`https://www.googleapis.com/auth/drive.file` — only files the app creates).
+- The access token (and refresh token, when the provider returns one) is
+  stored in SecureStore and refreshed when expired.
+- Upload uses the Drive API v3 `files.create` multipart endpoint with the
+  encrypted backup JSON. Drive never sees plaintext card data.
+
+The Google OAuth client ID is **not** bundled: configure it in `app.json`
+`extra.googleDrive.clientId` (or `EXPO_PUBLIC_GOOGLE_DRIVE_CLIENT_ID`).
+Without it the Drive section explains that it is not configured.
 
 ## Roadmap
 
 1. ~~Local encrypted vault~~ (done)
 2. ~~Biometric unlock~~ (done)
 3. ~~Card creation (manual)~~ (done)
-4. Card scanning (camera + OCR, with mandatory review)
-5. Encrypted export/import as a file
-6. Google Drive encrypted backup
-7. Recovery-key UX (password-protected vault export)
+4. ~~Card scanning (camera + review)~~ (done — OCR pre-fill pending a model)
+5. ~~Encrypted export/import as a file~~ (done)
+6. ~~Google Drive encrypted backup~~ (done — requires a Google OAuth client ID)
+7. OCR text recognition to pre-fill the review screen from the captured image

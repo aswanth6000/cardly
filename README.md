@@ -47,9 +47,10 @@ See `docs/development.md` for details.
 ## Roadmap
 
 - **Done:** encrypted local vault, biometric unlock, manual card entry, copy
-  with clipboard auto-clear, app lock.
-- **Planned:** card scanning (camera + OCR with mandatory review), encrypted
-  export/import, Google Drive backup, recovery-key UX.
+  with clipboard auto-clear, app lock, camera capture with review screen,
+  encrypted export/import, Google Drive backup (requires a Google OAuth
+  client ID).
+- **Planned:** OCR text recognition to pre-fill the review screen.
 
 ## Security
 

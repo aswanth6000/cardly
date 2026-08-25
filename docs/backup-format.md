@@ -125,6 +125,14 @@ Future format changes should:
 
 ## Current status
 
-Encrypted export/import and Google Drive backup are on the roadmap. The vault
-model (`packages/vault`) already serializes to this exact format, and the
-round-trip is covered by tests.
+Encrypted export/import and Google Drive backup are implemented:
+
+- `@cardly/backup` provides `createBackup` / `restoreBackup` / `setRecoveryKey`.
+- The Backup screen in the app lets the user set a recovery password, export
+  the encrypted file to the app Documents folder, import a `.cardly` file via
+  the system document picker, and back up to Google Drive.
+- Round-trip, wrong-password, and tamper cases are covered by tests
+  (`packages/backup/src/backup.test.ts` and `packages/vault/src/backup.test.ts`).
+
+The `.cardly` file extension is registered in `.gitignore` (`*.cardly`) so
+backups are never accidentally committed.

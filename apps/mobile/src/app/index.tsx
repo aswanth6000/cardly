@@ -20,9 +20,21 @@ export default function WalletScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={[styles.list, { paddingTop: insets.top + spacing.lg }]}
         ListHeaderComponent={
-          <T variant="hero" style={styles.title}>
-            Wallet
-          </T>
+          <View style={styles.headerRow}>
+            <T variant="hero" style={styles.title}>
+              Wallet
+            </T>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Settings"
+              onPress={() => router.push('/settings')}
+              hitSlop={12}
+              style={({ pressed }) => [styles.settingsButton, pressed && styles.fabPressed]}>
+              <T variant="bodyLarge" color="secondary">
+                ⚙
+              </T>
+            </Pressable>
+          </View>
         }
         renderItem={({ item }) => (
           <CardVisual
@@ -65,7 +77,9 @@ export default function WalletScreen() {
 
 const styles = StyleSheet.create({
   list: { paddingHorizontal: spacing.md, paddingBottom: 120 },
-  title: { marginBottom: spacing.lg },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg },
+  title: {},
+  settingsButton: { padding: spacing.sm },
   separator: { height: spacing.md },
   empty: { alignItems: 'center', paddingTop: spacing.xxl, gap: spacing.sm },
   emptyTitle: { textAlign: 'center' },

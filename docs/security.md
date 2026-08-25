@@ -80,6 +80,20 @@ loses both the device and the password, the vault is unrecoverable — by design
 - Authentication is **required to reveal** card number, CVV, and cardholder
   name. It is not required to see the wallet list (masked cards only).
 
+## Backup
+
+- Backups are encrypted **before** they leave the device (`@cardly/backup`).
+  The file contains the encrypted payload plus the vault key wrapped by the
+  recovery password — never the password itself, and never plaintext card
+  data.
+- Export writes the encrypted file to the app Documents folder. Import
+  replaces the current vault on this device.
+- Google Drive (when configured) receives only the encrypted backup file,
+  via OAuth with the minimal `drive.file` scope. Drive tokens are stored in
+  SecureStore and refreshed when expired.
+- Cardly operates no backup server and cannot read a backup without the
+  user's recovery password.
+
 ## Clipboard
 
 - Copying a sensitive field writes it to the clipboard and **clears it after

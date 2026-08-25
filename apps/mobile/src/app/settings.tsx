@@ -36,7 +36,10 @@ export default function SettingsScreen() {
           Settings
         </T>
 
-        <View style={[styles.section, { backgroundColor: theme.backgroundElevated, borderColor: theme.divider }]}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push('/backup')}
+          style={[styles.section, { backgroundColor: theme.backgroundElevated, borderColor: theme.divider }]}>
           <T variant="bodyLarge">Backup</T>
           <T variant="secondary" color="secondary">
             Your vault stays on this device.
@@ -46,8 +49,10 @@ export default function SettingsScreen() {
               {summary.length} card{summary.length === 1 ? '' : 's'} stored locally
             </T>
           ) : null}
-          <Button label="Back Up" variant="secondary" onPress={() => {}} style={styles.button} />
-        </View>
+          <T variant="body" style={{ color: theme.accent, marginTop: spacing.sm }}>
+            Manage backup →
+          </T>
+        </Pressable>
 
         <View style={[styles.section, { backgroundColor: theme.backgroundElevated, borderColor: theme.divider }]}>
           <T variant="bodyLarge">Danger zone</T>

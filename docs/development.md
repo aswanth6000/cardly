@@ -53,6 +53,27 @@ apps/mobile/src/
 └── theme.tsx            # theme wiring
 ```
 
+## Google Drive setup (optional)
+
+The Drive backup feature is disabled until a Google OAuth client ID is
+configured. To enable it:
+
+1. Create an OAuth 2.0 Client ID in Google Cloud Console (Web application
+   type works for web + Expo Go; native apps should use the matching native
+   client types for production builds).
+2. Add the redirect URI to the client's authorized redirects. For web,
+   `AuthSession.makeRedirectUri()` produces a URL based on your dev server.
+3. Set the client ID in `apps/mobile/app.json`:
+
+   ```json
+   "extra": { "googleDrive": { "clientId": "xxxx.apps.googleusercontent.com" } }
+   ```
+
+   or as a build-time env var: `EXPO_PUBLIC_GOOGLE_DRIVE_CLIENT_ID`.
+
+Without it, the Backup screen shows a "not configured" message — no fake
+connected state.
+
 ## Package conventions
 
 - `packages/crypto` and `packages/vault` are **Node-runnable**. Never add a
