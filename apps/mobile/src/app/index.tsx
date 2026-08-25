@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Screen, T, radius, spacing, useTheme } from '@cardly/ui';
 
 import { CardVisual } from '@/components/card-visual';
+import { FadeIn } from '@/components/fade-in';
 import { useVault } from '@/vault-context';
 
 const STACK_OVERLAP = 10;
@@ -68,15 +69,17 @@ export default function WalletScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           renderItem={({ item, index }) => (
-            <View style={[styles.itemWrap, index > 0 && styles.stackedItem]}>
-              <CardVisual
-                nickname={item.nickname}
-                issuer={item.issuer}
-                network={item.network}
-                last4={item.last4}
-                onPress={() => router.push(`/card/${item.id}`)}
-              />
-            </View>
+            <FadeIn delay={index * 60}>
+              <View style={[styles.itemWrap, index > 0 && styles.stackedItem]}>
+                <CardVisual
+                  nickname={item.nickname}
+                  issuer={item.issuer}
+                  network={item.network}
+                  last4={item.last4}
+                  onPress={() => router.push(`/card/${item.id}`)}
+                />
+              </View>
+            </FadeIn>
           )}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           showsVerticalScrollIndicator={false}

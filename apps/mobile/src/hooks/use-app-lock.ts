@@ -4,6 +4,13 @@
  * Locks the vault when the app goes to the background (and on app start),
  * and unlocks it only after the user authenticates with the device's
  * biometrics / passcode.
+ *
+ * The auto-prompt effect fires at most once per lock cycle (guarded by a
+ * ref) and never re-prompts on failure — the user must trigger
+ * `authenticate()` explicitly (e.g. pressing a "reveal" action) after a
+ * failed or cancelled attempt. Pass `autoPrompt: false` for screens that
+ * only want the explicit authenticate() helper (e.g. card-details reveal),
+ * so the system prompt does not fire on mount.
  */
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -13,25 +20,32 @@ export function useAppLock({
   enabled,
   onUnlock,
   onLock,
+  autoPrompt = true,
 }: {
   enabled: boolean;
   onUnlock: () => void | Promise<void>;
   onLock: () => void | Promise<void>;
+  autoPrompt?: boolean;
 }) {
   const [authenticated, setAuthenticated] = useState(false);
   const [busy, setBusy] = useState(false);
   const [available, setAvailable] = useState(false);
   const prevState = useRef(AppState.currentState);
+  // Guards: prompt once per lock cycle; avoid re-prompt loops.
+  const promptedThisCycle = useRef(false);
+  const mounted = useRef(true);
 
   useEffect(() => {
-    let mounted = true;
+    mounted.current = true;
+    let alive = true;
     (async () => {
       const supported = await LocalAuthentication.hasHardwareAsync();
       const enrolled = await LocalAuthentication.isEnrolledAsync();
-      if (mounted) setAvailable(supported && enrolled);
+      if (alive && mounted.current) setAvailable(supported && enrolled);
     })();
     return () => {
-      mounted = false;
+      alive = false;
+      mounted.current = false;
     };
   }, []);
 
@@ -45,6 +59,7 @@ export function useAppLock({
         cancelLabel: 'Cancel',
       });
       if (result.success) {
+        promptedThisCycle.current = true;
         setAuthenticated(true);
         await onUnlock();
         return true;
@@ -56,6 +71,7 @@ export function useAppLock({
   }, [enabled, available, onUnlock]);
 
   const lock = useCallback(async () => {
+    promptedThisCycle.current = false;
     setAuthenticated(false);
     await onLock();
   }, [onLock]);
@@ -71,14 +87,14 @@ export function useAppLock({
     return () => sub.remove();
   }, [lock]);
 
+  // Auto-prompt once per lock cycle when enabled — never in a loop.
   useEffect(() => {
-    if (enabled && !authenticated) {
-      // Initial unlock prompt: authenticate() sets state once the user
-      // responds, which is fine here (one-time, not a render loop).
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      authenticate();
-    }
-  }, [enabled, authenticated, authenticate]);
+    if (!autoPrompt) return;
+    if (!enabled || authenticated) return;
+    if (!available || promptedThisCycle.current) return;
+    promptedThisCycle.current = true;
+    authenticate();
+  }, [autoPrompt, enabled, authenticated, available, authenticate]);
 
   return { authenticated, busy, available, authenticate, lock };
 }

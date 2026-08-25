@@ -38,8 +38,11 @@ export default function CardDetailsScreen() {
   }, [id, getCard]);
 
   // Card fields are sensitive: reveal them only after device authentication.
+  // autoPrompt is off — the prompt fires only when the user taps a sensitive
+  // field, never on screen open.
   const { authenticate } = useAppLock({
     enabled: true,
+    autoPrompt: false,
     onUnlock: () => setRevealed(true),
     onLock: () => setRevealed(false),
   });
