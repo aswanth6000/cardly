@@ -32,6 +32,12 @@ export function normalizeCardholderName(raw: string): string {
   return raw.trim().replace(/\s+/g, ' ').toUpperCase();
 }
 
+/** Normalize for live input: uppercase but keep the trailing space the user
+ *  is typing (unlike normalizeCardholderName which trims). */
+export function normalizeCardholderNameLive(raw: string): string {
+  return raw.replace(/\s+/g, ' ').toUpperCase();
+}
+
 export function formatCardNumber(raw: string): string {
   const digits = normalizeCardNumber(raw);
   if (digits.length === 15) {
@@ -75,6 +81,24 @@ export function isValidExpiry(month?: number, year?: number): boolean {
   return true;
 }
 
+/** Expiry must be valid AND not already past (compared to the current
+ *  month/year). */
+export function isExpiryInPast(month?: number, year?: number): boolean {
+  if (!isValidExpiry(month, year)) return true;
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  if ((year ?? 0) < currentYear) return true;
+  if ((year ?? 0) === currentYear && (month ?? 0) < currentMonth) return true;
+  return false;
+}
+
+/** Normalize an expiry year entry: accepts 2 or 4 digits. */
+export function normalizeExpiryYear(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 4);
+  return digits;
+}
+
 export function isValidCvv(cvv: string | undefined, network?: string): boolean {
   if (!cvv) return true;
   const digits = normalizeCardNumber(cvv);
@@ -97,8 +121,8 @@ export function validateCardInput(input: CardInput): ValidationResult {
   if (input.cardholderName && input.cardholderName.trim().length < 2) {
     errors.push({ field: 'cardholderName', message: 'Cardholder name looks too short.' });
   }
-  if (!isValidExpiry(input.expiryMonth, input.expiryYear)) {
-    errors.push({ field: 'expiry', message: 'Enter a valid expiry.' });
+  if (isExpiryInPast(input.expiryMonth, input.expiryYear)) {
+    errors.push({ field: 'expiry', message: 'The expiry date is invalid or in the past.' });
   }
   if (!isValidCvv(input.cvv, input.network)) {
     errors.push({ field: 'cvv', message: 'CVV must be 3 or 4 digits.' });

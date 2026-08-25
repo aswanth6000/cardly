@@ -132,15 +132,26 @@ export function VaultProvider({ children, store }: { children: React.ReactNode; 
     [storage, refreshSummary],
   );
 
+  const ensureVault = useCallback(async (): Promise<Vault> => {
+    let v = vaultRef.current;
+    if (!v) {
+      v = await Vault.create();
+      await storage.setItem(VAULT_STORAGE_KEY, JSON.stringify(v.serialize()));
+      await storeVaultKey(await Vault.recoverKeyFromVault(v), storage);
+      vaultRef.current = v;
+      setVault(v);
+    }
+    return v;
+  }, [storage]);
+
   const addCard = useCallback(
     async (input: CardInput) => {
-      const v = vaultRef.current;
-      if (!v) throw new Error('Vault is not available');
+      const v = await ensureVault();
       const card = await v.addCard(input);
       await persist(v);
       return card;
     },
-    [persist],
+    [ensureVault, persist],
   );
 
   const updateCard = useCallback(

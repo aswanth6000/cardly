@@ -3,10 +3,12 @@ import { describe, expect, it } from 'vitest';
 import { getLast4, getNetwork } from '../src/card';
 import {
   formatCardNumber,
+  isExpiryInPast,
   isValidCardNumber,
   isValidCvv,
   isValidExpiry,
   luhnCheck,
+  normalizeCardholderNameLive,
   normalizeCardNumber,
   validateCardInput,
 } from '../src/validation';
@@ -46,6 +48,26 @@ describe('card validation', () => {
     expect(isValidExpiry(13, 2029)).toBe(false);
     expect(isValidExpiry(0, 2029)).toBe(false);
     expect(isValidExpiry(undefined, undefined)).toBe(false);
+  });
+
+  it('rejects expiry dates in the past', () => {
+    const now = new Date();
+    const pastYear = now.getFullYear() - 1;
+    expect(isExpiryInPast(12, pastYear)).toBe(true);
+    // Current month is never "in the past" only if it is >= now.
+    expect(isExpiryInPast(12, now.getFullYear())).toBe(false);
+    // A month before the current month in the current year is in the past.
+    if (now.getMonth() > 0) {
+      expect(isExpiryInPast(1, now.getFullYear())).toBe(true);
+    }
+    expect(isExpiryInPast(undefined, undefined)).toBe(true);
+  });
+
+  it('keeps spaces while typing a cardholder name (trims only on save)', () => {
+    expect(normalizeCardholderNameLive('aswanth ')).toBe('ASWANTH ');
+    expect(normalizeCardholderNameLive('aswanth  a')).toBe('ASWANTH A');
+    // Whitespace runs collapse to a single space; the save path trims ends.
+    expect(normalizeCardholderNameLive('  john   doe  ')).toBe(' JOHN DOE ');
   });
 
   it('validates CVV', () => {

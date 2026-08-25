@@ -4,7 +4,7 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Screen, T, radius, spacing, useTheme } from '@cardly/ui';
-import { DuplicateCardError, formatCardNumber, normalizeCardholderName } from '@cardly/vault';
+import { DuplicateCardError, formatCardNumber, normalizeCardholderNameLive, normalizeExpiryYear } from '@cardly/vault';
 import type { Card } from '@cardly/vault';
 
 import { useVault } from '@/vault-context';
@@ -140,7 +140,7 @@ export default function EditCardScreen() {
           <Field label="Cardholder name">
             <TextInput
               value={cardholderName}
-              onChangeText={(t) => setCardholderName(normalizeCardholderName(t))}
+              onChangeText={(t) => setCardholderName(normalizeCardholderNameLive(t))}
               placeholder="ASWANTH A"
               placeholderTextColor={theme.textTertiary}
               style={inputStyle}
@@ -162,7 +162,7 @@ export default function EditCardScreen() {
             <Field label="Expiry year" style={styles.rowItem}>
               <TextInput
                 value={expiryYear}
-                onChangeText={(t) => setExpiryYear(t.replace(/\D/g, '').slice(0, 4))}
+                onChangeText={(t) => setExpiryYear(normalizeExpiryYear(t))}
                 placeholder="2029"
                 placeholderTextColor={theme.textTertiary}
                 style={inputStyle}

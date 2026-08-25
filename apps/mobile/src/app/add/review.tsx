@@ -4,7 +4,7 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Screen, T, radius, spacing, useTheme } from '@cardly/ui';
-import { DuplicateCardError, formatCardNumber, getNetwork, normalizeCardholderName } from '@cardly/vault';
+import { DuplicateCardError, formatCardNumber, getNetwork, normalizeCardholderNameLive, normalizeExpiryYear } from '@cardly/vault';
 
 import { useVault } from '@/vault-context';
 import { notifyHaptic } from '@/lib/haptics';
@@ -24,7 +24,7 @@ export default function ReviewCardScreen() {
   const [cardNumber, setCardNumber] = useState(params.cardNumber ? formatCardNumber(params.cardNumber) : '');
   const [expiryMonth, setExpiryMonth] = useState(params.expiryMonth ?? '');
   const [expiryYear, setExpiryYear] = useState(params.expiryYear ?? '');
-  const [cardholderName, setCardholderName] = useState(params.cardholderName ? normalizeCardholderName(params.cardholderName) : '');
+  const [cardholderName, setCardholderName] = useState(params.cardholderName ? normalizeCardholderNameLive(params.cardholderName) : '');
   const [issuer, setIssuer] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -116,7 +116,7 @@ export default function ReviewCardScreen() {
           <Field label="Cardholder name">
             <TextInput
               value={cardholderName}
-              onChangeText={(t) => setCardholderName(normalizeCardholderName(t))}
+              onChangeText={(t) => setCardholderName(normalizeCardholderNameLive(t))}
               placeholder="ASWANTH A"
               placeholderTextColor={theme.textTertiary}
               style={inputStyle}
@@ -138,7 +138,7 @@ export default function ReviewCardScreen() {
             <Field label="Expiry year" style={styles.rowItem}>
               <TextInput
                 value={expiryYear}
-                onChangeText={(t) => setExpiryYear(t.replace(/\D/g, '').slice(0, 4))}
+                onChangeText={(t) => setExpiryYear(normalizeExpiryYear(t))}
                 placeholder="2029"
                 placeholderTextColor={theme.textTertiary}
                 style={inputStyle}
