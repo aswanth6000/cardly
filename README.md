@@ -1,56 +1,64 @@
-# Welcome to your Expo app 👋
+# Cardly
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A beautiful, private, open-source wallet for your physical cards.
 
-## Get started
+- Local-first
+- No account
+- No tracking
+- Encrypted vault
+- Optional encrypted backup
+- Open source
 
-1. Install dependencies
+> **Status:** early development. The local encrypted vault, biometric unlock and
+> manual card entry are working. Card scanning and Google Drive backup are on the
+> roadmap — see `docs/architecture.md`.
 
-   ```bash
-   npm install
-   ```
+## Features
 
-2. Start the app
+- **Encrypted local vault.** Cards are encrypted with AES-256-GCM before they
+  ever touch disk. Keys live in the platform secure store (iOS Keychain /
+  Android Keystore).
+- **Biometric unlock.** Face ID, Touch ID, and Android biometrics gate access to
+  sensitive card details.
+- **No account. No backend.** Cardly works fully offline. There is no Cardly
+  server, no analytics, no advertising.
+- **Copy in one tap.** Reveal a field, copy it, done. Clipboard contents are
+  never logged and sensitive copies auto-clear.
 
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Getting started
 
 ```bash
-npm run reset-project
+pnpm install
+pnpm web        # web preview
+pnpm ios        # iOS simulator
+pnpm android    # Android emulator
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+See `docs/development.md` for details.
 
-### Other setup steps
+## Documentation
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+- [Architecture](docs/architecture.md)
+- [Security model](docs/security.md)
+- [Backup format](docs/backup-format.md)
+- [Development](docs/development.md)
+- [Contributing](CONTRIBUTING.md)
 
-## Learn more
+## Roadmap
 
-To learn more about developing your project with Expo, look at the following resources:
+- **Done:** encrypted local vault, biometric unlock, manual card entry, copy
+  with clipboard auto-clear, app lock.
+- **Planned:** card scanning (camera + OCR with mandatory review), encrypted
+  export/import, Google Drive backup, recovery-key UX.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Security
 
-## Join the community
+Cardly takes a conservative, honest security posture. It does not claim to be
+"unhackable" — no local-first app is. Read the full threat model in
+[`docs/security.md`](docs/security.md).
 
-Join our community of developers creating universal apps.
+To report a security issue, see [`SECURITY.md`](SECURITY.md).
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## License
+
+MIT — see [LICENSE](LICENSE).

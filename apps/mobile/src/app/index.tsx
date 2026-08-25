@@ -1,0 +1,88 @@
+import { useRouter } from 'expo-router';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { Screen, T, spacing, useTheme } from '@cardly/ui';
+
+import { CardVisual } from '@/components/card-visual';
+import { useVault } from '@/vault-context';
+
+export default function WalletScreen() {
+  const router = useRouter();
+  const { summary } = useVault();
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
+
+  return (
+    <Screen>
+      <FlatList
+        data={summary ?? []}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={[styles.list, { paddingTop: insets.top + spacing.lg }]}
+        ListHeaderComponent={
+          <T variant="hero" style={styles.title}>
+            Wallet
+          </T>
+        }
+        renderItem={({ item }) => (
+          <CardVisual
+            nickname={item.nickname}
+            issuer={item.issuer}
+            network={item.network}
+            last4={item.last4}
+            onPress={() => router.push(`/card/${item.id}`)}
+          />
+        )}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <T variant="title" style={styles.emptyTitle}>
+              Your wallet is empty
+            </T>
+            <T variant="secondary" color="secondary" style={styles.emptyHint}>
+              Add a card to get started.
+            </T>
+          </View>
+        }
+      />
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Add card"
+        onPress={() => router.push('/add')}
+        style={({ pressed }) => [
+          styles.fab,
+          { backgroundColor: theme.accent },
+          pressed && styles.fabPressed,
+          { bottom: insets.bottom + spacing.lg },
+        ]}>
+        <T variant="bodyLarge" style={{ color: theme.accentText }}>
+          +
+        </T>
+      </Pressable>
+    </Screen>
+  );
+}
+
+const styles = StyleSheet.create({
+  list: { paddingHorizontal: spacing.md, paddingBottom: 120 },
+  title: { marginBottom: spacing.lg },
+  separator: { height: spacing.md },
+  empty: { alignItems: 'center', paddingTop: spacing.xxl, gap: spacing.sm },
+  emptyTitle: { textAlign: 'center' },
+  emptyHint: { textAlign: 'center' },
+  fab: {
+    position: 'absolute',
+    right: spacing.lg,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  fabPressed: { opacity: 0.85 },
+});
