@@ -1,13 +1,31 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
 import Constants from 'expo-constants';
 
-import { Button, Screen, T, radius, spacing, useTheme } from '@cardly/ui';
+import {
+  Button,
+  FeedbackBanner,
+  IconCloud,
+  IconDocument,
+  IconKey,
+  IconShield,
+  ListRow,
+  PageHeader,
+  Screen,
+  Section,
+  SectionHeader,
+  T,
+  TextField,
+  spacing,
+  useTheme,
+} from '@cardly/ui';
 
+import { BackButton } from '@/components/back-button';
+import { FadeIn } from '@/components/fade-in';
 import { useVault } from '@/vault-context';
 import {
   clearDriveToken,
@@ -24,8 +42,8 @@ import type { DriveToken } from '@/lib/drive';
 
 export default function BackupScreen() {
   const router = useRouter();
-  const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const { summary, hasRecoveryKey, setRecoveryPassword, exportBackup, importBackup } = useVault();
 
   const [recoveryPassword, setRecoveryPasswordState] = useState('');
@@ -34,17 +52,11 @@ export default function BackupScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Google Drive
   const driveConfig = getDriveConfig(Constants.expoConfig?.extra as Record<string, unknown> | undefined);
   const driveAuth = useGoogleDriveAuth(driveConfig.clientId);
   const [driveToken, setDriveToken] = useState<DriveToken | null>(null);
   const [driveBusy, setDriveBusy] = useState(false);
   const [driveFiles, setDriveFiles] = useState<{ id: string; name: string }[] | null>(null);
-
-  const inputStyle = [
-    styles.input,
-    { backgroundColor: theme.backgroundElevated, color: theme.text, borderColor: theme.divider },
-  ];
 
   const clearFeedback = () => {
     setMessage(null);
@@ -124,12 +136,10 @@ export default function BackupScreen() {
 
   const cardCount = summary?.length ?? 0;
 
-  // Load any stored Drive token on mount.
   useEffect(() => {
     readDriveToken().then(setDriveToken).catch(() => {});
   }, []);
 
-  // Handle the OAuth response: exchange code → token, then persist.
   useEffect(() => {
     if (!driveAuth.response) return;
     if (driveAuth.response.type === 'success') {
@@ -140,7 +150,6 @@ export default function BackupScreen() {
           refreshToken: auth.refreshToken ?? null,
           expiresAt: Date.now() + (auth.expiresIn ?? 3600) * 1000,
         };
-        // Async persistence then state update — safe, not a render loop.
         persistDriveToken(token)
           .then(() => setDriveToken(token))
           .catch(() => setError('Could not save the Drive connection.'));
@@ -247,152 +256,136 @@ export default function BackupScreen() {
 
   return (
     <Screen padded>
-      <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + spacing.lg }]}>
-        <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.backButton}>
-          <T variant="body" color="secondary">
-            Back
-          </T>
-        </Pressable>
+      <ScrollView
+        contentContainerStyle={[styles.container, { paddingTop: insets.top + spacing.lg }]}
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}>
+        <BackButton onPress={() => router.back()} />
 
-        <T variant="hero" style={styles.title}>
-          Backup
-        </T>
-        <T variant="secondary" color="secondary">
-          Your vault stays on this device. {cardCount} card{cardCount === 1 ? '' : 's'} stored locally.
-        </T>
+        <FadeIn>
+          <PageHeader
+            eyebrow="Recovery kit"
+            title="Backup"
+            icon={<IconShield size={28} color={theme.text} />}
+            description={`Your vault stays on this device. ${cardCount} card${cardCount === 1 ? '' : 's'} stored locally.`}
+          />
+        </FadeIn>
 
-        <View style={[styles.section, { backgroundColor: theme.backgroundElevated, borderColor: theme.divider }]}>
-          <T variant="bodyLarge">Recovery password</T>
-          <T variant="secondary" color="secondary">
-            {hasRecoveryKey
-              ? 'Your vault is protected by a recovery password.'
-              : 'Set a recovery password to enable encrypted backups. Cardly cannot recover it if you forget it.'}
-          </T>
-          <Field label="Recovery password">
-            <TextInput
+        <FadeIn delay={70}>
+          <Section>
+            <SectionHeader icon={<IconKey size={18} color={theme.text} />} label="Recovery kit" />
+            <T variant="bodyLarge">Recovery password</T>
+            <T variant="body" color="secondary">
+              {hasRecoveryKey
+                ? 'Your vault is protected by a recovery password.'
+                : 'Set a recovery password to enable encrypted backups. Cardly cannot recover it if you forget it.'}
+            </T>
+            <TextField
+              label="Recovery password"
               value={recoveryPassword}
               onChangeText={setRecoveryPasswordState}
               placeholder="At least 8 characters"
-              placeholderTextColor={theme.textTertiary}
-              style={inputStyle}
               secureTextEntry
               autoCapitalize="none"
             />
-          </Field>
-          <Field label="Confirm password">
-            <TextInput
+            <TextField
+              label="Confirm password"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               placeholder="Repeat the password"
-              placeholderTextColor={theme.textTertiary}
-              style={inputStyle}
               secureTextEntry
               autoCapitalize="none"
             />
-          </Field>
-          <Button label={hasRecoveryKey ? 'Update Recovery Password' : 'Save Recovery Password'} onPress={saveRecoveryPassword} disabled={busy} />
-        </View>
+            <Button
+              label={hasRecoveryKey ? 'Update Recovery Password' : 'Save Recovery Password'}
+              onPress={saveRecoveryPassword}
+              disabled={busy}
+              loading={busy}
+            />
+          </Section>
+        </FadeIn>
 
-        <View style={[styles.section, { backgroundColor: theme.backgroundElevated, borderColor: theme.divider }]}>
-          <T variant="bodyLarge">Encrypted export</T>
-          <T variant="secondary" color="secondary">
-            Exports an encrypted file only you can open, using your recovery password.
-          </T>
-          <Button label="Export Backup" variant="secondary" onPress={onExport} disabled={busy} />
-          <Button label="Import Backup" variant="secondary" onPress={onImport} disabled={busy} />
-        </View>
+        <FadeIn delay={140}>
+          <Section tone="subtle">
+            <SectionHeader icon={<IconDocument size={18} color={theme.text} />} label="Portable vault" />
+            <T variant="bodyLarge">Encrypted export</T>
+            <T variant="body" color="secondary">
+              Exports an encrypted file only you can open, using your recovery password.
+            </T>
+            <Button label="Export Backup" variant="secondary" onPress={onExport} disabled={busy} loading={busy} />
+            <Button label="Import Backup" variant="secondary" onPress={onImport} disabled={busy} />
+          </Section>
+        </FadeIn>
 
-        <View style={[styles.section, { backgroundColor: theme.backgroundElevated, borderColor: theme.divider }]}>
-          <T variant="bodyLarge">Google Drive</T>
-          <T variant="secondary" color="secondary">
-            {driveConfig.clientId
-              ? 'Your vault is encrypted before it leaves this device. Cardly cannot read your backup.'
-              : 'Google Drive backup is not configured for this build. Set a Google OAuth client ID in app.json extra.googleDrive.clientId to enable it.'}
-          </T>
-          {driveToken ? (
-            <>
-              <T variant="caption" color="tertiary">
-                Connected to Google Drive
-              </T>
-              <Button label="Back Up to Drive" onPress={onDriveBackup} disabled={driveBusy} />
-              <Button label="Restore from Drive" variant="secondary" onPress={onDriveRestoreList} disabled={driveBusy} />
-              {driveFiles !== null && (
-                <View style={styles.fileList}>
-                  {driveFiles.length === 0 ? (
-                    <T variant="caption" color="tertiary">
-                      No backups found.
-                    </T>
-                  ) : (
-                    driveFiles.map((f) => (
-                      <Pressable
-                        key={f.id}
-                        accessibilityRole="button"
-                        onPress={() => onDriveRestore(f.id, f.name)}
-                        style={({ pressed }) => [
-                          styles.fileRow,
-                          { borderColor: theme.divider },
-                          pressed && { opacity: 0.7 },
-                        ]}>
-                        <T variant="body" numberOfLines={1}>
-                          {f.name}
-                        </T>
-                        <T variant="caption" color="secondary">
-                          Restore
-                        </T>
-                      </Pressable>
-                    ))
-                  )}
-                </View>
-              )}
-              <Button label="Disconnect" variant="ghost" onPress={onDriveDisconnect} disabled={driveBusy} />
-            </>
-          ) : (
-            driveConfig.clientId && (
-              <Button label="Connect Google Drive" onPress={onDriveConnect} disabled={driveBusy} />
-            )
-          )}
-        </View>
+        <FadeIn delay={210}>
+          <Section>
+            <SectionHeader icon={<IconCloud size={18} color={theme.text} />} label="Optional sync" />
+            <T variant="bodyLarge">Google Drive</T>
+            <T variant="body" color="secondary">
+              {driveConfig.clientId
+                ? 'Your vault is encrypted before it leaves this device. Cardly cannot read your backup.'
+                : 'Google Drive backup is not configured for this build. Set a Google OAuth client ID in app.json extra.googleDrive.clientId to enable it.'}
+            </T>
+            {driveToken ? (
+              <>
+                <T variant="caption" color="tertiary">
+                  Connected to Google Drive
+                </T>
+                <Button label="Back Up to Drive" onPress={onDriveBackup} disabled={driveBusy} loading={driveBusy} />
+                <Button label="Restore from Drive" variant="secondary" onPress={onDriveRestoreList} disabled={driveBusy} />
+                {driveFiles !== null && (
+                  <View style={styles.fileList}>
+                    {driveFiles.length === 0 ? (
+                      <T variant="caption" color="tertiary">
+                        No backups found.
+                      </T>
+                    ) : (
+                      driveFiles.map((f) => (
+                        <ListRow
+                          key={f.id}
+                          label={f.name}
+                          detail="Encrypted Cardly backup"
+                          action="Restore"
+                          icon={<IconCloud size={16} color={theme.textSecondary} />}
+                          onPress={() => onDriveRestore(f.id, f.name)}
+                        />
+                      ))
+                    )}
+                  </View>
+                )}
+                <Button label="Disconnect" variant="ghost" onPress={onDriveDisconnect} disabled={driveBusy} />
+              </>
+            ) : (
+              driveConfig.clientId && (
+                <Button label="Connect Google Drive" onPress={onDriveConnect} disabled={driveBusy} />
+              )
+            )}
+          </Section>
+        </FadeIn>
 
-        {message && <T variant="caption" style={{ color: theme.textSecondary }}>{message}</T>}
-        {error && <T variant="caption" style={{ color: theme.danger }}>{error}</T>}
+        {message ? (
+          <FadeIn>
+            <FeedbackBanner tone="success">
+              {message}
+            </FeedbackBanner>
+          </FadeIn>
+        ) : null}
+        {error ? (
+          <FadeIn>
+            <FeedbackBanner tone="error">
+              {error}
+            </FeedbackBanner>
+          </FadeIn>
+        ) : null}
       </ScrollView>
     </Screen>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <View style={styles.field}>
-      <T variant="caption" color="secondary">
-        {label}
-      </T>
-      {children}
-    </View>
-  );
-}
+
+
 
 const styles = StyleSheet.create({
   container: { gap: spacing.lg, paddingBottom: spacing.xxl },
-  backButton: { alignSelf: 'flex-start', paddingVertical: spacing.sm },
-  title: { marginTop: spacing.md },
-  section: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.md },
-  field: { gap: spacing.xs },
   fileList: { gap: spacing.sm },
-  fileRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
-    gap: spacing.md,
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
-    fontSize: 16,
-  },
 });

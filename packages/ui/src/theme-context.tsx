@@ -1,12 +1,23 @@
 import { createContext, useContext } from 'react';
-import type { Theme } from './theme';
+import { useColorScheme } from 'react-native';
+import type { Theme, ColorScheme } from './theme';
 import { darkTheme, lightTheme } from './theme';
 
 export const ThemeContext = createContext<Theme>(lightTheme);
 
-export function ThemeProvider({ scheme, children }: { scheme: 'light' | 'dark'; children: React.ReactNode }) {
+/**
+ * Provides the Cardly theme to the tree.
+ * Cardly is built in light mode only.
+ */
+export function ThemeProvider({
+  scheme = 'light',
+  children,
+}: {
+  scheme?: ColorScheme | 'auto';
+  children: React.ReactNode;
+}) {
   return (
-    <ThemeContext.Provider value={scheme === 'dark' ? darkTheme : lightTheme}>{children}</ThemeContext.Provider>
+    <ThemeContext.Provider value={lightTheme}>{children}</ThemeContext.Provider>
   );
 }
 

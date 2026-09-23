@@ -1,8 +1,24 @@
 import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Screen, T, spacing } from '@cardly/ui';
+import {
+  IconEyeOff,
+  IconKey,
+  IconLock,
+  IconShield,
+  PageHeader,
+  Screen,
+  Section,
+  T,
+  spacing,
+  useTheme,
+} from '@cardly/ui';
+
+import { BackButton } from '@/components/back-button';
+import { FadeIn } from '@/components/fade-in';
+
+const ICONS = [IconShield, IconEyeOff, IconLock, IconKey];
 
 const POINTS: { title: string; body: string }[] = [
   {
@@ -26,32 +42,45 @@ const POINTS: { title: string; body: string }[] = [
 export default function PrivacyScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
 
   return (
     <Screen padded>
-      <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + spacing.lg }]}>
-        <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.backButton}>
-          <T variant="body" color="secondary">
-            Back
-          </T>
-        </Pressable>
+      <ScrollView
+        contentContainerStyle={[styles.container, { paddingTop: insets.top + spacing.lg }]}
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}>
+        <BackButton onPress={() => router.back()} />
 
-        <T variant="hero" style={styles.title}>
-          Privacy
-        </T>
-        <T variant="secondary" color="secondary">
-          The full policy is in PRIVACY.md in the source repository. In short:
-        </T>
+        <FadeIn>
+          <PageHeader
+            eyebrow="No account. No tracking."
+            title="Privacy"
+            icon={<IconShield size={28} color={theme.text} />}
+            description="The full policy is in PRIVACY.md in the source repository. In short:"
+          />
+        </FadeIn>
 
         <View style={styles.points}>
-          {POINTS.map((p) => (
-            <View key={p.title} style={styles.point}>
-              <T variant="bodyLarge">{p.title}</T>
-              <T variant="secondary" color="secondary">
-                {p.body}
-              </T>
-            </View>
-          ))}
+          {POINTS.map((p, index) => {
+            const Icon = ICONS[index];
+            return (
+              <FadeIn key={p.title} delay={70 + index * 70}>
+                <Section tone={index % 2 === 0 ? 'default' : 'subtle'}>
+                  <View style={styles.pointHeader}>
+                    <View style={[styles.pointIconWrap, { borderColor: theme.outline }]}>
+                      <Icon size={16} color={theme.text} />
+                    </View>
+                    <T variant="label">{`0${index + 1}`}</T>
+                  </View>
+                  <T variant="bodyLarge">{p.title}</T>
+                  <T variant="body" color="secondary">
+                    {p.body}
+                  </T>
+                </Section>
+              </FadeIn>
+            );
+          })}
         </View>
       </ScrollView>
     </Screen>
@@ -60,8 +89,18 @@ export default function PrivacyScreen() {
 
 const styles = StyleSheet.create({
   container: { gap: spacing.lg, paddingBottom: spacing.xxl },
-  backButton: { alignSelf: 'flex-start', paddingVertical: spacing.sm },
-  title: { marginTop: spacing.md },
-  points: { gap: spacing.lg },
-  point: { gap: spacing.xs },
+  points: { gap: spacing.md },
+  pointHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  pointIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 4,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

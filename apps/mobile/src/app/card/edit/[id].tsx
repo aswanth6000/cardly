@@ -1,18 +1,20 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View, KeyboardAvoidingView, Platform } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, Screen, T, radius, spacing, useTheme } from '@cardly/ui';
-import { DuplicateCardError, formatCardNumber, normalizeCardholderNameLive, normalizeExpiryYear } from '@cardly/vault';
+import { Button, Divider, FeedbackBanner, PageHeader, Screen, SectionHeader, T, TextField, spacing } from '@cardly/ui';
+import { DuplicateCardError, formatCardNumber, getNetwork, normalizeCardholderNameLive, normalizeExpiryYear } from '@cardly/vault';
 import type { Card } from '@cardly/vault';
 
+import { BackButton } from '@/components/back-button';
+import { CardVisual } from '@/components/card-visual';
+import { FadeIn } from '@/components/fade-in';
 import { useVault } from '@/vault-context';
 
 export default function EditCardScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { getCard, updateCard, validateInput } = useVault();
 
@@ -27,6 +29,9 @@ export default function EditCardScreen() {
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const network = cardNumber ? getNetwork(cardNumber.replace(/\D/g, '')) : undefined;
+  const last4 = cardNumber.replace(/\D/g, '').slice(-4);
 
   useEffect(() => {
     if (!id) return;
@@ -43,11 +48,6 @@ export default function EditCardScreen() {
       setNotes(c.notes ?? '');
     });
   }, [id, getCard]);
-
-  const inputStyle = [
-    styles.input,
-    { backgroundColor: theme.backgroundElevated, color: theme.text, borderColor: theme.divider },
-  ];
 
   const submit = async () => {
     if (!card) return;
@@ -98,150 +98,128 @@ export default function EditCardScreen() {
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}>
-      <ScrollView
-        contentContainerStyle={[styles.container, { paddingTop: insets.top + spacing.lg, paddingBottom: insets.bottom + spacing.xxl }]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}>
-        <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.backButton}>
-          <T variant="body" color="secondary">
-            Cancel
-          </T>
-        </Pressable>
+        <ScrollView
+          contentContainerStyle={[
+            styles.container,
+            { paddingTop: insets.top + spacing.lg, paddingBottom: insets.bottom + spacing.xxl },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}>
+          <BackButton onPress={() => router.back()} label="Cancel" />
 
-        <T variant="hero" style={styles.title}>
-          Edit Card
-        </T>
+          <FadeIn>
+            <PageHeader
+              eyebrow="Protected details"
+              title="Edit Card"
+              description="Changes are encrypted before they are saved to this device."
+            />
+          </FadeIn>
 
-        <View style={styles.form}>
-          <Field label="Nickname">
-            <TextInput
+          {/* Live card preview */}
+          <FadeIn delay={60}>
+            <CardVisual
+              nickname={nickname || 'Your Card'}
+              issuer={issuer || undefined}
+              network={network}
+              last4={last4.length === 4 ? last4 : undefined}
+              cardholderName={cardholderName || undefined}
+              cardId={card.id}
+              expiry={expiryMonth && expiryYear ? `${expiryMonth.padStart(2, '0')}/${expiryYear.slice(-2)}` : undefined}
+              compact
+            />
+          </FadeIn>
+
+          <View style={styles.form}>
+            <SectionHeader label="Card information" />
+            <TextField
+              label="Nickname"
               value={nickname}
               onChangeText={setNickname}
               placeholder="e.g. Travel Card"
-              placeholderTextColor={theme.textTertiary}
-              style={inputStyle}
               autoCapitalize="words"
             />
-          </Field>
-          <Field label="Issuer">
-            <TextInput
+            <TextField
+              label="Issuer"
               value={issuer}
               onChangeText={setIssuer}
               placeholder="e.g. HDFC"
-              placeholderTextColor={theme.textTertiary}
-              style={inputStyle}
               autoCapitalize="words"
             />
-          </Field>
-          <Field label="Card number">
-            <TextInput
+            <TextField
+              label="Card number"
               value={cardNumber}
               onChangeText={(t) => setCardNumber(formatCardNumber(t))}
               placeholder="4528 1234 5678 4821"
-              placeholderTextColor={theme.textTertiary}
-              style={inputStyle}
               keyboardType="number-pad"
               maxLength={23}
             />
-          </Field>
-          <Field label="Cardholder name">
-            <TextInput
+            <TextField
+              label="Cardholder name"
               value={cardholderName}
               onChangeText={(t) => setCardholderName(normalizeCardholderNameLive(t))}
               placeholder="ASWANTH A"
-              placeholderTextColor={theme.textTertiary}
-              style={inputStyle}
               autoCapitalize="characters"
             />
-          </Field>
-          <View style={styles.row}>
-            <Field label="Expiry month" style={styles.rowItem}>
-              <TextInput
+
+            <Divider style={styles.divider} />
+
+            <SectionHeader label="Expiry & Security" />
+
+            <View style={styles.row}>
+              <TextField
+                label="Expiry month"
+                style={styles.rowItem}
                 value={expiryMonth}
                 onChangeText={(t) => setExpiryMonth(t.replace(/\D/g, '').slice(0, 2))}
                 placeholder="08"
-                placeholderTextColor={theme.textTertiary}
-                style={inputStyle}
                 keyboardType="number-pad"
                 maxLength={2}
               />
-            </Field>
-            <Field label="Expiry year" style={styles.rowItem}>
-              <TextInput
+              <TextField
+                label="Expiry year"
+                style={styles.rowItem}
                 value={expiryYear}
                 onChangeText={(t) => setExpiryYear(normalizeExpiryYear(t))}
                 placeholder="2029"
-                placeholderTextColor={theme.textTertiary}
-                style={inputStyle}
                 keyboardType="number-pad"
                 maxLength={4}
               />
-            </Field>
-          </View>
-          <Field label="CVV">
-            <TextInput
+            </View>
+            <TextField
+              label="CVV"
               value={cvv}
               onChangeText={(t) => setCvv(t.replace(/\D/g, '').slice(0, 4))}
               placeholder="•••"
-              placeholderTextColor={theme.textTertiary}
-              style={inputStyle}
               keyboardType="number-pad"
               maxLength={4}
               secureTextEntry
             />
-          </Field>
-          <Field label="Notes">
-            <TextInput
-              value={notes}
-              onChangeText={setNotes}
-              placeholder="Optional"
-              placeholderTextColor={theme.textTertiary}
-              style={inputStyle}
-              multiline
-            />
-          </Field>
-        </View>
 
-        {error && (
-          <T variant="caption" style={{ color: theme.danger }}>
-            {error}
-          </T>
-        )}
+            <Divider style={styles.divider} />
 
-        <Button label={saving ? 'Saving…' : 'Save Changes'} onPress={submit} disabled={saving} style={styles.saveButton} />
-      </ScrollView>
+            <TextField label="Notes" value={notes} onChangeText={setNotes} placeholder="Optional" multiline />
+          </View>
+
+          {error ? (
+            <FeedbackBanner tone="error">
+              {error}
+            </FeedbackBanner>
+          ) : null}
+
+          <Button label={saving ? 'Saving…' : 'Save Changes'} onPress={submit} disabled={saving} loading={saving} />
+        </ScrollView>
       </KeyboardAvoidingView>
     </Screen>
-  );
-}
-
-function Field({ label, children, style }: { label: string; children: React.ReactNode; style?: View['props']['style'] }) {
-  return (
-    <View style={[styles.field, style]}>
-      <T variant="caption" color="secondary">
-        {label}
-      </T>
-      {children}
-    </View>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { gap: spacing.lg, paddingBottom: spacing.xxl },
-  backButton: { alignSelf: 'flex-start', paddingVertical: spacing.sm },
-  title: { marginTop: spacing.md },
   form: { gap: spacing.md },
-  field: { gap: spacing.xs },
   row: { flexDirection: 'row', gap: spacing.md },
   rowItem: { flex: 1 },
-  input: {
-    borderWidth: 1,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
-    fontSize: 16,
-  },
-  saveButton: { marginTop: spacing.md },
+  divider: { marginVertical: spacing.xs },
 });

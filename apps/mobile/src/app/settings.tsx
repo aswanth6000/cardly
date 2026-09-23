@@ -1,16 +1,34 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, Screen, T, spacing, useTheme } from '@cardly/ui';
+import {
+  Button,
+  Chip,
+  IconDocument,
+  IconGear,
+  IconShield,
+  IconTrash,
+  ListRow,
+  PageHeader,
+  Screen,
+  Section,
+  SectionHeader,
+  T,
+  spacing,
+  useTheme,
+} from '@cardly/ui';
 
+import { BackButton } from '@/components/back-button';
+import { CardlyLogo } from '@/components/cardly-logo';
+import { FadeIn } from '@/components/fade-in';
 import { useVault } from '@/vault-context';
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const { deleteVault, summary } = useVault();
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -25,62 +43,66 @@ export default function SettingsScreen() {
 
   return (
     <Screen padded>
-      <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + spacing.lg }]}>
-        <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.backButton}>
-          <T variant="body" color="secondary">
-            Back
-          </T>
-        </Pressable>
+      <ScrollView
+        contentContainerStyle={[styles.container, { paddingTop: insets.top + spacing.lg }]}
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}>
+        <BackButton onPress={() => router.back()} />
 
-        <T variant="hero" style={styles.title}>
-          Settings
-        </T>
-
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push('/backup')}
-          style={[styles.section, { backgroundColor: theme.backgroundElevated, borderColor: theme.divider }]}>
-          <T variant="bodyLarge">Backup</T>
-          <T variant="secondary" color="secondary">
-            Your vault stays on this device.
-          </T>
-          {summary && summary.length > 0 ? (
-            <T variant="caption" color="tertiary">
-              {summary.length} card{summary.length === 1 ? '' : 's'} stored locally
-            </T>
-          ) : null}
-          <T variant="body" style={{ color: theme.accent, marginTop: spacing.sm }}>
-            Manage backup →
-          </T>
-        </Pressable>
-
-        <View style={[styles.section, { backgroundColor: theme.backgroundElevated, borderColor: theme.divider }]}>
-          <T variant="bodyLarge">Danger zone</T>
-          <T variant="secondary" color="secondary">
-            Delete the vault and all card data from this device.
-          </T>
-          <Button
-            label={confirmDelete ? 'Confirm delete' : 'Delete Vault'}
-            variant={confirmDelete ? 'danger' : 'ghost'}
-            onPress={onDelete}
-            style={styles.button}
+        <FadeIn>
+          <PageHeader
+            eyebrow="Control room"
+            title="Settings"
+            icon={<IconGear size={28} color={theme.text} />}
           />
-        </View>
+        </FadeIn>
 
-        <Pressable
-          accessibilityRole="link"
-          onPress={() => router.push('/privacy')}
-          style={styles.privacyRow}>
-          <T variant="body" color="secondary">
-            Privacy policy
-          </T>
-          <T variant="body" color="tertiary">
-            →
-          </T>
-        </Pressable>
+        <FadeIn delay={70}>
+          <ListRow
+            label="Backup & recovery"
+            detail={`${summary?.length ?? 0} card${summary?.length === 1 ? '' : 's'} stored locally`}
+            action="Manage"
+            icon={<IconShield size={20} color={theme.text} />}
+            onPress={() => router.push('/backup')}
+          />
+        </FadeIn>
+
+        <FadeIn delay={140}>
+          <Section tone="subtle">
+            <SectionHeader icon={<IconTrash size={18} color={theme.danger} />} label="Danger zone" />
+            <T variant="bodyLarge">Delete this vault</T>
+            <T variant="body" color="secondary">
+              Delete the vault and all card data from this device.
+            </T>
+            <Button
+              label={confirmDelete ? 'Confirm delete' : 'Delete Vault'}
+              variant={confirmDelete ? 'danger' : 'ghost'}
+              onPress={onDelete}
+            />
+          </Section>
+        </FadeIn>
+
+        <FadeIn delay={210}>
+          <ListRow
+            label="Privacy policy"
+            detail="How Cardly handles your data"
+            action="Read"
+            icon={<IconDocument size={20} color={theme.text} />}
+            onPress={() => router.push('/privacy')}
+          />
+        </FadeIn>
+
+        <FadeIn delay={280}>
+          <View style={styles.brandFooter}>
+            <CardlyLogo variant="full" width={110} />
+            <Chip tone="muted" style={styles.versionChip}>
+              v0.2.0
+            </Chip>
+          </View>
+        </FadeIn>
 
         <T variant="caption" color="tertiary" style={styles.footer}>
-          Cardly v0.2.0 — open source · local-first · no account
+          Open source · local-first · no account
         </T>
       </ScrollView>
     </Screen>
@@ -89,15 +111,11 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   container: { gap: spacing.lg, paddingBottom: spacing.xxl },
-  backButton: { alignSelf: 'flex-start', paddingVertical: spacing.sm },
-  title: { marginTop: spacing.md },
-  section: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 16, padding: spacing.lg, gap: spacing.sm },
-  button: { marginTop: spacing.sm },
-  privacyRow: {
-    flexDirection: 'row',
+  footer: { textAlign: 'center' },
+  versionChip: { alignSelf: 'center' },
+  brandFooter: {
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.sm,
+    gap: spacing.sm,
+    marginTop: spacing.sm,
   },
-  footer: { marginTop: spacing.lg, textAlign: 'center' },
 });

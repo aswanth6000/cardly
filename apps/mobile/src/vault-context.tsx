@@ -71,13 +71,17 @@ export function VaultProvider({ children, store }: { children: React.ReactNode; 
       if (v) {
         setVault(v);
         await refreshSummary(v);
+      } else {
+        setLocked(false);
       }
       setReady(true);
     })();
   }, [loadVault, refreshSummary]);
 
   const unlock = useCallback(async () => {
-    if (vaultRef.current) {
+    const existing = vaultRef.current;
+    if (existing) {
+      await refreshSummary(existing);
       setLocked(false);
       return;
     }
@@ -94,7 +98,6 @@ export function VaultProvider({ children, store }: { children: React.ReactNode; 
 
   const lock = useCallback(async () => {
     setLocked(true);
-    setSummary(null);
   }, []);
 
   const createNewVault = useCallback(async () => {
@@ -141,6 +144,7 @@ export function VaultProvider({ children, store }: { children: React.ReactNode; 
       vaultRef.current = v;
       setVault(v);
     }
+    setLocked(false);
     return v;
   }, [storage]);
 

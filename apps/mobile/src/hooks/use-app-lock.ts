@@ -11,6 +11,9 @@
  * failed or cancelled attempt. Pass `autoPrompt: false` for screens that
  * only want the explicit authenticate() helper (e.g. card-details reveal),
  * so the system prompt does not fire on mount.
+ *
+ * When the device has no enrolled biometrics / passcode, lock is skipped
+ * so the wallet is never stranded behind an unlock the OS cannot present.
  */
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -29,9 +32,8 @@ export function useAppLock({
 }) {
   const [authenticated, setAuthenticated] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [available, setAvailable] = useState(false);
+  const [available, setAvailable] = useState<boolean | null>(null);
   const prevState = useRef(AppState.currentState);
-  // Guards: prompt once per lock cycle; avoid re-prompt loops.
   const promptedThisCycle = useRef(false);
   const mounted = useRef(true);
 
@@ -51,7 +53,12 @@ export function useAppLock({
 
   const authenticate = useCallback(async (): Promise<boolean> => {
     if (!enabled) return true;
-    if (!available) return true;
+    if (available === false) {
+      setAuthenticated(true);
+      await onUnlock();
+      return true;
+    }
+    if (available === null) return false;
     setBusy(true);
     try {
       const result = await LocalAuthentication.authenticateAsync({
@@ -71,10 +78,11 @@ export function useAppLock({
   }, [enabled, available, onUnlock]);
 
   const lock = useCallback(async () => {
+    if (available === false) return;
     promptedThisCycle.current = false;
     setAuthenticated(false);
     await onLock();
-  }, [onLock]);
+  }, [available, onLock]);
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', (next) => {
@@ -87,14 +95,13 @@ export function useAppLock({
     return () => sub.remove();
   }, [lock]);
 
-  // Auto-prompt once per lock cycle when enabled — never in a loop.
   useEffect(() => {
     if (!autoPrompt) return;
     if (!enabled || authenticated) return;
-    if (!available || promptedThisCycle.current) return;
+    if (available === null || promptedThisCycle.current) return;
     promptedThisCycle.current = true;
-    authenticate();
+    void authenticate();
   }, [autoPrompt, enabled, authenticated, available, authenticate]);
 
-  return { authenticated, busy, available, authenticate, lock };
+  return { authenticated, busy, available: available === true, authenticate, lock };
 }
